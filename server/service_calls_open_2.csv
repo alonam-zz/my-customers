@@ -1,0 +1,13 @@
+customer_id,title,description,status,priority,assigned_support_agent_id,assigned_technician_id,type,product_id,service_id
+1,Customer cannot access account portal,Customer reports login failure even after password reset. Needs support follow up.,new,high,\N,\N,question,\N,\N
+2,Device makes unusual noise,Customer says the installed device makes noise during operation. Technician inspection required.,open,mid,1,\N,fault,1,\N
+3,Installation date change request,Customer asked to move the installation appointment to another day.,waiting_customer,low,2,\N,installation,2,1
+4,Service plan clarification,Customer wants more details about what is included in the monthly service plan.,open,low,1,\N,question,\N,2
+5,Replacement part needed,Customer reports a damaged part and asks whether it can be replaced under warranty.,in_progress,high,2,1,warranty,3,\N
+6,System performance is slow,Customer says the system responds slowly during peak hours. Requires investigation.,open,mid,1,\N,fault,4,\N
+7,Customer asks for maintenance pricing,Customer wants a quote for a one-time maintenance visit.,new,low,\N,\N,maintenance,1,3
+8,Technician arrival delay,Customer reports that the technician has not arrived yet and asks for an update.,waiting_technician,high,2,2,complaint,\N,\N
+9,Upgrade compatibility check,Customer wants to know whether the current product supports the requested upgrade.,open,mid,1,\N,upgrade,5,4
+10,Urgent outage reported,Customer reports a complete service outage and asks for immediate assistance.,new,urgent,\N,\N,emergency,2,\N
+11,Invoice question after upgrade,Customer asks why the invoice changed after upgrading the service.,open,mid,2,\N,billing,\N,4
+12,Follow-up after previous fault,Customer says the issue improved but is not fully solved. Needs another check.,in_progress,high,1,1,fault,3,\N

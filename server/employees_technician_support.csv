@@ -1,0 +1,7 @@
+first_name,last_name,email,username,password,phone,role,is_active
+Daniel,Cohen,daniel.cohen@example.com,daniel.cohen,REPLACE_WITH_BCRYPT_HASH,050-1111111,technician,1
+Avi,Levi,avi.levi@example.com,avi.levi,REPLACE_WITH_BCRYPT_HASH,050-2222222,technician,1
+Noa,Mizrahi,noa.mizrahi@example.com,noa.mizrahi,REPLACE_WITH_BCRYPT_HASH,050-3333333,technician,1
+Maya,Israeli,maya.israeli@example.com,maya.israeli,REPLACE_WITH_BCRYPT_HASH,050-4444444,support,1
+Tamar,Peretz,tamar.peretz@example.com,tamar.peretz,REPLACE_WITH_BCRYPT_HASH,050-5555555,support,1
+Yossi,Biton,yossi.biton@example.com,yossi.biton,REPLACE_WITH_BCRYPT_HASH,050-6666666,support,1

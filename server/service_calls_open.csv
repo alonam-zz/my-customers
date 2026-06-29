@@ -1,0 +1,11 @@
+customer_id,title,description,status,priority,assigned_support_agent_id,assigned_technician_id,type,product_id,service_id
+1,Internet connection is unstable,Customer reports frequent disconnections during work hours. Router restart did not solve the issue.,open,high,1,\N,fault,1,\N
+2,New equipment installation request,Customer requested installation of new equipment at the office. Needs technician scheduling.,open,mid,1,1,installation,2,1
+3,Product stops working after update,Customer says the product stopped responding after the latest update. Requires technical check.,in_progress,urgent,2,1,fault,3,\N
+4,Question about warranty coverage,Customer wants to know whether the current problem is covered by warranty.,waiting_customer,low,2,\N,warranty,2,\N
+5,Maintenance visit needed,Regular maintenance is required. Customer prefers morning hours.,open,mid,1,2,maintenance,1,2
+6,Billing issue after service call,Customer says the invoice amount does not match the agreed service price.,open,high,2,\N,billing,\N,3
+7,Emergency fault at customer site,Customer reports that the system is completely unavailable and needs urgent technician support.,new,urgent,\N,\N,emergency,4,\N
+8,Customer complaint about response time,Customer is unhappy with the previous response time and asked for manager review.,open,mid,1,\N,complaint,\N,\N
+9,Upgrade service request,Customer is interested in upgrading the existing service plan and needs explanation of options.,waiting_customer,low,2,\N,upgrade,5,4
+10,Technician visit waiting for confirmation,Customer confirmed issue but technician assignment is still pending.,waiting_technician,high,1,\N,fault,3,\N
