@@ -1,18 +1,20 @@
 import { useEffect, useMemo, useState } from "react";
+import toast from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
 import { Tabs, Tab } from "react-bootstrap";
-import Modal from './Modal.jsx'
+import Modal from '../components/Modal.jsx'
 
-import CustomerForm from "./CustomerForm.jsx";
-import CallForm from "./CallForm.jsx";
-import List from "./List.jsx";
-import SearchSelect from "./components/SearchSelect.jsx";
-import { useBreadcrumbs } from "./components/BreadcrumbContext.jsx";
-import { useConfirm } from "./components/ConfirmProvider.jsx";
-import useApi from "./hooks/useApi.js";
-import { useI18n } from "./i18n/I18nProvider";
-import { formatDateTime } from "./utils/date.js";
-import {STATUS_BADGE,PRIORITY_BADGE} from "./utils/constans.js"
+import CustomerForm from "../components/CustomerForm.jsx";
+import CallForm from "../components/CallForm.jsx";
+import List from "../components/List.jsx";
+import SearchSelect from "../components/SearchSelect.jsx";
+import { useBreadcrumbs } from "../components/BreadcrumbContext.jsx";
+import { useConfirm } from "../components/ConfirmProvider.jsx";
+import useApi from "../hooks/useApi.js";
+import { useAddLog } from "../utils/logs.js";
+import { useI18n } from "../i18n/I18nProvider";
+import { formatDateTime } from "../utils/date.js";
+import {STATUS_BADGE,PRIORITY_BADGE} from "../utils/constants.js"
 
 
 
@@ -22,6 +24,7 @@ export default function CustomerPage({ customerId,initialTab = "details" }) {
   const { setLabel } = useBreadcrumbs();
   const send = useApi();
   const confirm = useConfirm();
+  const addLog = useAddLog();
   console.log(initialTab);
   // const initialTab = propTypes.initialTab;
 
@@ -120,13 +123,21 @@ export default function CustomerPage({ customerId,initialTab = "details" }) {
   const handleCallSubmit = async (data) => {
     if (data.id) {
       const { ok, data: updated } = await send(`/api/serviceCalls/${data.id}`, { method: 'PUT', body: data });
-      if (ok) setCalls((prev) => prev.map((c) => (c.id === (updated?.id ?? data.id) ? (updated ?? data) : c)));
+      if (ok) {
+        setCalls((prev) => prev.map((c) => (c.id === (updated?.id ?? data.id) ? (updated ?? data) : c)));
+        toast.success(t("servicecall.updatedSuccess")); 
+      }
       return ok;
     }
     const { ok, data: created } = await send('/api/serviceCalls', { method: 'POST', body: data });
-    if (ok && created) setCalls((prev) => [...prev, created]);
+    if (ok && created) {
+      setCalls((prev) => [...prev, created]);
+      toast.success(t("servicecall.addedSuccess"));
+      addLog("service_calls", t("logs.callAdded", { name: created.title ?? data.title }));
+    }
     return ok;
   }
+
 
   // ----- load this customer's products + the full catalog (for the add box) -----
   const fetchCustomerProducts = async (limit = 20, page = 1) => {
@@ -160,7 +171,10 @@ export default function CustomerPage({ customerId,initialTab = "details" }) {
   // returns true on success so the form knows whether to close.
   const handleSave = async (data) => {
     const { ok, data: updated } = await send(`/api/customers/${data.id}`, { method: "PUT", body: data });
-    if (ok && updated) setCustomer(updated);
+    if (ok && updated) {
+      setCustomer(updated);
+      toast.success(t("customer.updatedSuccess")); 
+    }
     return ok;
   };
 

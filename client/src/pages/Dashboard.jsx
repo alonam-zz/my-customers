@@ -2,16 +2,16 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
-import DataTable from "./components/DataTable.jsx";
-import { useI18n } from "./i18n/I18nProvider";
+import DataTable from "../components/DataTable.jsx";
+import { useI18n } from "../i18n/I18nProvider";
 
 const STATUS_BADGE = {
-  new: "text-bg-secondary",
-  open: "text-bg-primary",
-  in_progress: "text-bg-info",
-  waiting_customer: "text-bg-warning",
-  resolved: "text-bg-success",
-  closed: "text-bg-dark",
+  new: "text-secondary",
+  open: "text-primary",
+  in_progress: "text-info",
+  waiting_customer: "text-warning",
+  resolved: "text-success",
+  closed: "text-dark",
 };
 
 /* ---------- mock data (replace with /api/dashboard fetch) ---------- */
@@ -57,20 +57,20 @@ const MOCK_INTERVENTION = {
 };
 
 const PROBLEM_BADGE = {
-  noResponsible: "text-bg-danger",
-  noUpdate24h: "text-bg-warning",
-  reopened: "text-bg-info",
-  waitingTechAssign: "text-bg-secondary",
+  noResponsible: "text-danger",
+  noUpdate24h: "text-warning",
+  reopened: "text-info",
+  waitingTechAssign: "text-secondary",
 };
 
 function StatTile({ label, value, variant = "secondary", icon }) {
   return (
     <div className="col"> 
     {/* <!--"col-6 col-lg-4 col-xl-3">- */}
-      <div className={`card text-bg-${variant} shadow-sm h-100`}>
+      <div className={`card text-${variant} shadow-sm h-100`}>
         <div className="card-body text-center py-3">
           {icon ? <FontAwesomeIcon icon={["fas", icon]} className="mb-2 fs-4 opacity-75" /> : null}
-          <div className="fs-3 fw-bold lh-1">{value}</div>
+          <div className="fs-1 fw-bold lh-1">{value}</div>
           <div className="small mt-1">{label}</div>
         </div>
       </div>
@@ -109,7 +109,7 @@ export default function Dashboard() {
   }, []);
 
   const statusBadge = (status) => (
-    <span className={`badge ${STATUS_BADGE[status] || "text-bg-secondary"}`}>
+    <span className={`badge ${STATUS_BADGE[status] || "text-secondary"}`}>
       {t(`servicecall.status_${status}`)}
     </span>
   );
@@ -160,7 +160,7 @@ export default function Dashboard() {
       {
         key: "problem", label: t("dashboard.problem"), width: 3,
         render: (r) => (
-          <span className={`badge ${PROBLEM_BADGE[r.problem] || "text-bg-secondary"}`}>
+          <span className={`badge ${PROBLEM_BADGE[r.problem] || "text-secondary"}`}>
             {t(`dashboard.${r.problem}`)}
           </span>
         ),
@@ -174,7 +174,7 @@ export default function Dashboard() {
 
   return (
     <div className="container-fluid">
-      <h1 className="mb-3">{t("dashboard.title")}</h1>
+      {/* <h1 className="mb-3">{t("dashboard.title")}</h1> */}
 
       {/* ===== card 1: status summary ===== */}
       <div className="card shadow-sm mb-3">

@@ -71,6 +71,85 @@ async function logout(req, res){
   res.clearCookie("token").json({ success: true })
 }
 
+
+
+async function changePassword(req, res){  console.log(req);
+  try {
+    const {user,oldPassword,password,passwordConfirm} = req.body;
+
+    const loggedin = await authModel.findByUsername(user.username);
+    // res.json(loggedin[0] ?? null);
+    const checkedUser = loggedin[0]??null;
+
+    if (!checkedUser || !checkedUser.is_active) {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid username or password"
+      });
+    }
+
+    const isValidPassword = await bcrypt.compare(
+      oldPassword,
+      checkedUser.password
+    );
+
+    if (!isValidPassword) {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid current password"
+      });
+    }
+
+    if (password!=passwordConfirm){
+      return res.status(402).json({
+        success: false,
+        message: "Password and confirm password are not equal"
+      });
+    }
+
+
+    if (password.length<8 || password.length>12){
+      return res.status(402).json({
+        success: false,
+        message: "Password length should be between 8-12 alphanumeric characters"
+      });
+    }
+
+    const regex = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[!@#$%^&*()_\-+=\[\]{};:'",.<>/?\\|`~]).{8,}$/;
+    if (!regex.test(password)){
+      return res.status(402).json({
+        success: false,
+        message: "Password should contain at least one letter,one number and at least one special character"
+      }); 
+    }
+
+    const isNewPasswordEqualToOld = await bcrypt.compare(
+      password,
+      checkedUser.password
+    );
+
+    if (isNewPasswordEqualToOld) {
+      return res.status(401).json({
+        success: false,
+        message: "New password is equal to current password"
+      });
+    }
+
+    await authModel.setPassword(user.id,password);
+
+    res.json({
+      success:true,
+      user:user
+    })
+
+  } catch (error) {
+    console.error('Database error:', error);
+    res.status(500).json({ error: error.message });
+  }
+}
+
+
+
 async function me(req, res){ console.log("me");
   try {
     const token = req.cookies?.token;
@@ -105,5 +184,6 @@ async function me(req, res){ console.log("me");
 export default {
     login,
     logout,
-    me
+    me,
+    changePassword
 };

@@ -1,9 +1,11 @@
 import { useMemo, useState } from "react";
-import List from "./List.jsx";
-import Modal from "./Modal.jsx";
-import TechnicianForm from "./TechnicianForm.jsx";
-import useApi from "./hooks/useApi.js";
-import { useI18n } from "./i18n/I18nProvider";
+import toast from "react-hot-toast";
+import List from "../components/List.jsx";
+import Modal from "../components/Modal.jsx";
+import TechnicianForm from "../components/TechnicianForm.jsx";
+import useApi from "../hooks/useApi.js";
+import { useI18n } from "../i18n/I18nProvider";
+import useAuth from "../auth/AuthProvider.jsx";
 
 export default function TechniciansList() {
   const { t, locale } = useI18n();
@@ -13,6 +15,8 @@ export default function TechniciansList() {
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
   const [editItem, setEditItem] = useState({});
+  const [allowEdit, setAllowEdit] = useState(false);
+  const {user} = useAuth();
 
   const fetchTechnicians = async (limit = 20, page = 1) => {
     try {
@@ -36,7 +40,11 @@ export default function TechniciansList() {
     const url = data.id ? `/api/technicians/${data.id}` : "/api/technicians";
     const method = data.id ? "PUT" : "POST";
     const { ok } = await send(url, { method, body: data });
-    if (ok) fetchTechnicians(); // refresh (joined employee fields)
+    if (ok) {
+      fetchTechnicians(); // refresh (joined employee fields)
+      if (data.id) toast.success(t("technician.updatedSuccess")); 
+      else toast.success(t("technician.addedSuccess")); 
+    }
     return ok;
   };
 

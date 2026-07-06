@@ -1,8 +1,8 @@
 import { useState,useEffect } from "react";
-import { useI18n } from "./i18n/I18nProvider";
+import { useI18n } from "../i18n/I18nProvider";
 import {useNavigate} from "react-router-dom";
-import useApi from "./hooks/useApi.js";
-import useAuth from "./auth/AuthProvider";
+import useApi from "../hooks/useApi.js";
+import useAuth from "../auth/AuthProvider";
 
 export default function LoginForm() {
   const { t } = useI18n();

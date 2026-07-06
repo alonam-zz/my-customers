@@ -13,9 +13,47 @@ const SELECT_BASE =
     'LEFT JOIN support_agents sa ON (sc.assigned_support_agent_id = sa.id) ' +
     'LEFT JOIN employees se ON (sa.employee_id = se.id) ';
 
-async function getAll(limit,offset){
-    const [total] = await pool.execute('SELECT COUNT(*) AS total FROM service_calls');
-    const [items] = await pool.execute(SELECT_BASE +'  LIMIT '+limit +' OFFSET '+offset);
+async function getAll(limit,offset,filter){
+    let sql = 'SELECT COUNT(*) AS total FROM service_calls';
+    let params = [];
+    let where = "";
+    if (filter){ console.log(filter);
+    where += Object.keys(filter).map((key)=>{ console.log(key+'ddd '+filter[key]);
+        
+        if (Array.isArray(filter[key])){ console.log(" array "+key)
+          if (filter[key].length)
+            params.push(...filter[key])
+          else return "1=1";
+          return "sc."+key+" IN ("+filter[key].map((item)=>("?")).join(",")+")";
+        }
+        else{
+          // technician filter set to null => match calls with no technician assigned.
+          // NULL needs IS NULL (col = NULL never matches) and takes no param.
+          if (key === "assigned_technician_id" && filter[key] === null)
+            return "sc.assigned_technician_id IS NULL";
+          if (!filter[key]) return "1=1";
+          params.push(filter[key]);
+          switch (key){
+            case "fromDate":
+              return "sc.created_at>=?";
+            case "toDate":
+              return "sc.created_at<=?";
+            case "status":
+              return "sc.status=?";
+            case "priority":
+              return "sc.priority=?";
+            case "type":
+              return "sc.type=?";
+            case "assigned_technician_id":
+              return "sc.assigned_technician_id=?";
+          }
+      }
+    }).join(" AND ");
+  }
+console.log(SELECT_BASE +(where?`WHERE ${where}`:""));
+  console.log(params);
+    const [total] = await pool.execute('SELECT COUNT(*) AS total FROM service_calls sc '+(where?`WHERE ${where}`:""),params);
+    const [items] = await pool.execute(SELECT_BASE +(where?`WHERE ${where}`:"")+'  LIMIT '+limit +' OFFSET '+offset,params);
     return {total:total[0]["total"],items:items};
 }
 

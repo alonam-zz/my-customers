@@ -55,6 +55,9 @@ export default function Header({ onToggle, open }) {
       technicians: t("menu.technicians"),
       calls: t("servicecall.title"),
       supportAgents:t("menu.supportAgents"),
+      my: t("usermenu.my"),
+      details: t("usermenu.myDetails"),
+      changePassword: t("usermenu.changePassword"),
     };
     if (map[seg]) return map[seg];
     if (/^\d+$/.test(seg)) return `#${seg}`; // numeric id
@@ -115,7 +118,7 @@ export default function Header({ onToggle, open }) {
           <Dropdown.Item as={Link} to="/my/calls">{t("usermenu.myCalls")}</Dropdown.Item>
           <Dropdown.Divider />
           <Dropdown.Item as={Link} to="/my/details">{t("usermenu.myDetails")}</Dropdown.Item>
-          <Dropdown.Item as={Link} to="/my/password">{t("usermenu.changePassword")}</Dropdown.Item>
+          <Dropdown.Item as={Link} to="/my/changePassword">{t("usermenu.changePassword")}</Dropdown.Item>
           <Dropdown.Item as="button" type="button" onClick={onLogout}>{t("usermenu.logout")}</Dropdown.Item>
         </Dropdown.Menu>
       </Dropdown>

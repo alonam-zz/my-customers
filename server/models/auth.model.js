@@ -27,8 +27,14 @@ async function me(){
     // return result;
 }
 
+async function setPassword(user_id,password){
+  const passwordHash = await bcrypt.hash(password, 10);
+  await pool.execute('UPDATE employees SET password=? WHERE id=?',[passwordHash,user_id]);
+}
+
 export default {
   findByUsername,
   logout,
   me,
+  setPassword
 };

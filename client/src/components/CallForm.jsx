@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
-import SearchSelect from "./components/SearchSelect.jsx";
+import SearchSelect from "./SearchSelect.jsx";
 
 //for the dictionary
-import { useI18n } from "./i18n/I18nProvider";
-import {CALL_STATUSES,CALL_PRIORITIES,CALL_TYPES} from "./utils/constans.js";
+import { useI18n } from "../i18n/I18nProvider";
+import {CALL_STATUSES,CALL_PRIORITIES,CALL_TYPES} from "../utils/constants.js";
 
 
 /**

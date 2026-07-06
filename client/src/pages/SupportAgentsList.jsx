@@ -1,9 +1,12 @@
 import { useMemo, useState } from "react";
-import List from "./List.jsx";
-import Modal from "./Modal.jsx";
-import SupportAgentForm from "./SupportAgentForm.jsx";
-import useApi from "./hooks/useApi.js";
-import { useI18n } from "./i18n/I18nProvider";
+import toast from "react-hot-toast";
+import List from "../components/List.jsx";
+import Modal from "../components/Modal.jsx";
+import SupportAgentForm from "../components/SupportAgentForm.jsx";
+import useApi from "../hooks/useApi.js";
+import { useI18n } from "../i18n/I18nProvider";
+import { useAlert } from "../components/ConfirmProvider.jsx";
+import useAuth from "../auth/AuthProvider.jsx";
 
 export default function SupportAgentsList() {
   const { t, locale } = useI18n();
@@ -13,6 +16,9 @@ export default function SupportAgentsList() {
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
   const [editItem, setEditItem] = useState({});
+  const {user} = useAuth();
+
+  alert = useAlert();
 
   const fetchAgents = async (limit = 20, page = 1) => {
     try {
@@ -33,10 +39,23 @@ export default function SupportAgentsList() {
   // create also creates the employee (handled server-side in one call).
   // returns true on success so the form knows whether to close.
   const handleSubmit = async (data) => {
+    if (data.max_open_calls>100){
+      await alert({
+          title: t("common.errorTitle"),
+          message: t("messages.maxOpenAbove100") ,
+          confirmText: t("common.ok"),
+          variant: "danger",
+        });
+      return;
+    }
     const url = data.id ? `/api/supportAgents/${data.id}` : "/api/supportAgents";
     const method = data.id ? "PUT" : "POST";
     const { ok } = await send(url, { method, body: data });
-    if (ok) fetchAgents(); // refresh (joined employee fields)
+    if (ok) {
+      fetchAgents(); // refresh (joined employee fields)
+      if (data.id) toast.success(t("supportagent.updatedSuccess")); 
+      else toast.success(t("supportagent.addedSuccess")); 
+    }
     return ok;
   };
 

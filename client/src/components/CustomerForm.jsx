@@ -2,9 +2,9 @@ import React, { useState } from "react";
 import { createPortal } from "react-dom";
 
 //for the dictionary 
-import { useI18n } from "./i18n/I18nProvider";
-import Select from "./components/Select";
-import {CUSTOMER_TYPE,CUSTOMER_PRIORITY,CUSTOMER_STATUSES} from './utils/constans.js'
+import { useI18n } from "../i18n/I18nProvider";
+import Select from "./Select";
+import {CUSTOMER_TYPE,CUSTOMER_PRIORITY,CUSTOMER_STATUSES} from '../utils/constants.js'
 
 
 

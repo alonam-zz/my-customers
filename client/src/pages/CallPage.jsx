@@ -2,19 +2,20 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import { Tabs, Tab } from "react-bootstrap";
-import Modal from './Modal.jsx'
+import Modal from '../components/Modal.jsx'
 
 
-import CallForm from "./CallForm.jsx";
-import List from "./List.jsx";
-import SearchSelect from "./components/SearchSelect.jsx";
-import { useBreadcrumbs } from "./components/BreadcrumbContext.jsx";
-import { useConfirm } from "./components/ConfirmProvider.jsx";
-import useApi from "./hooks/useApi.js";
-import { useI18n } from "./i18n/I18nProvider";
-import { formatDateTime } from "./utils/date.js";
-import {STATUS_BADGE,PRIORITY_BADGE} from "./utils/constans.js"
-import  useAuth  from "./auth/AuthProvider.jsx";
+import CallForm from "../components/CallForm.jsx";
+import List from "../components/List.jsx";
+import SearchSelect from "../components/SearchSelect.jsx";
+import { useBreadcrumbs } from "../components/BreadcrumbContext.jsx";
+import { useConfirm } from "../components/ConfirmProvider.jsx";
+import useApi from "../hooks/useApi.js";
+import { useI18n } from "../i18n/I18nProvider";
+import { formatDateTime } from "../utils/date.js";
+import {STATUS_BADGE,PRIORITY_BADGE} from "../utils/constants.js"
+import  useAuth  from "../auth/AuthProvider.jsx";
+import { useAddLog } from "../utils/logs.js";
 
 
 
@@ -44,6 +45,7 @@ export default function CallPage({ customerId,callId }) {
   const [newCallLineDescription,setNewCallLineDescription] = useState("");
 
   const {user} = useAuth();
+  const addLog = useAddLog();
 
   // ----- load the customer (GET /api/customers/:id) -----
   useEffect(() => {
@@ -115,6 +117,8 @@ export default function CallPage({ customerId,callId }) {
         case "status":
             desc = t("callLine.statusChanged")+t(`callStatus.${value}`);
             call.status = value;
+            if (value === "closed")
+                addLog("service_calls", t("logs.callClosed", { name: call.title }));
             break;
         case "type":
             desc = t("callLine.typeChanged")+t(`callType.${value}`);;
@@ -127,10 +131,12 @@ export default function CallPage({ customerId,callId }) {
         case 'support_agent_id':
             desc = t("callLine.movedToEmployee")+' '+valueName ;
             call.support_agent_id = value;
+            addLog("service_calls", t("logs.supportAgentSet", { name: valueName, call: call.title }));
             break;
         case 'technician_id':
             desc = t("callLine.technicianSet")+' '+valueName ;
             call.technician_id = value;
+            addLog("service_calls", t("logs.technicianSet", { name: valueName, call: call.title }));
             break;
         case 'service_id':
             desc = t("callLine.serviceChanged")+valueName;
@@ -152,7 +158,7 @@ export default function CallPage({ customerId,callId }) {
 
     const { ok, data: created } = await send(`/api/serviceCallLines/${callId}`, { method: 'POST', body: newLine });
     setNewCallLineDescription("");
-    setCallLines((prev)=>[...prev,created])
+    setCallLines((prev)=>[...prev,created].slice(0,limit))
   }
 
   // ----- load technicians + support agents for the CallForm dropdowns -----
@@ -190,12 +196,15 @@ export default function CallPage({ customerId,callId }) {
       const { ok, data: updated } = await send(`/api/serviceCalls/${data.id}`, { method: 'PUT', body: data });
       if (ok) {
         setCall(updated ?? data);
-        toast.success(t("servicecall.callUpdated"));
+        toast.success(t("servicecall.updateSuccess"));
       }
       return ok;
     }
     const { ok, data: created } = await send('/api/serviceCalls', { method: 'POST', body: data });
-    if (ok && created) setCalls((prev) => [...prev, created]);
+    if (ok && created) {
+      setCall((prev) => [...prev, created]);
+      toast.success(t("servicecall.addedSuccess"));
+    }
     return ok;
   }
 

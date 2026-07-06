@@ -12,6 +12,8 @@ import techniciansRoutes from './routes/technicians.routes.js';
 import supportAgentsRoutes from './routes/supportAgents.routes.js';
 import serviceCallsRoutes from './routes/serviceCalls.routes.js';
 import serviceCallLinesRoutes from './routes/serviceCallLines.routes.js';
+import reportsRoutes from './routes/reports.routes.js';
+import logsRoutes from './routes/logs.routes.js';
 
 import authRoutes from './routes/auth.routes.js';
 
@@ -33,6 +35,8 @@ app.use('/api/services', servicesRoutes);
 app.use('/api/serviceCalls', serviceCallsRoutes);
 app.use('/api/serviceCallLines', serviceCallLinesRoutes);
 app.use('/api/auth', authRoutes);
+app.use('/api/reports', reportsRoutes);
+app.use('/api/logs', logsRoutes);
 
 
 

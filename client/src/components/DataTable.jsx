@@ -84,7 +84,7 @@ export default function DataTable({
 
   useEffect(()=>{
     async function updateDataTable(){
-         if (updateDataByPage!==undefined) await updateDataByPage(pageSize,page);
+         if (updateDataByPage) await updateDataByPage(pageSize,page);
     }
     updateDataTable();
 
@@ -101,7 +101,7 @@ export default function DataTable({
   return (
     <div className="table-responsive">
       <table className="table table-sm table-hover align-middle">
-        <thead class="text-sm-start">
+        <thead className="text-sm-start">
           <tr>
             {columns.map((col) => (
               <th

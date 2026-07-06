@@ -9,8 +9,10 @@ async function getAllServiceCalls(req, res){
   try {
     const page = Number(req.query.page) || 1;
     const limit = Number(req.query.limit) || 20;
+    const filter = JSON.parse(req.query.filter) ;
+
     const offset = (page - 1) * limit;
-    const {total,items} = await serviceCallsModel.getAll(limit,offset);
+    const {total,items} = await serviceCallsModel.getAll(limit,offset,filter);
     const totalPages = Math.ceil(total/limit)
     res.json({items:items,pagination:{total:total,limit:limit,page:page,totalPages:totalPages}});
   } catch (error) {

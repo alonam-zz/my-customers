@@ -1,13 +1,15 @@
 import { useState ,useEffect,useMemo } from 'react'
-import List from './List.jsx'
-import CustomerForm from './CustomerForm.jsx'
-import Modal from './Modal.jsx'
-import { useConfirm } from "./components/ConfirmProvider.jsx";
+import toast from "react-hot-toast";
+import List from '../components/List.jsx'
+import CustomerForm from '../components/CustomerForm.jsx'
+import Modal from '../components/Modal.jsx'
+import { useConfirm } from "../components/ConfirmProvider.jsx";
 import { useNavigate } from "react-router-dom";
-import useApi from "./hooks/useApi.js";
-import {PAGE_SIZE} from "./utils/constans.js"
+import useApi from "../hooks/useApi.js";
+import { useAddLog } from "../utils/logs.js";
+import {PAGE_SIZE} from "../utils/constants.js"
 //for the dictionary
-import { useI18n } from "./i18n/I18nProvider";
+import { useI18n } from "../i18n/I18nProvider";
 
 
 function CustomersList({categorisList,...rest}) {
@@ -23,6 +25,7 @@ function CustomersList({categorisList,...rest}) {
   const { t, locale, setLocale } = useI18n();
   const navigate = useNavigate();
   const send = useApi();
+  const addLog = useAddLog();
 
   // Fetch customers from server
   // useEffect(() => {
@@ -105,14 +108,20 @@ function CustomersList({categorisList,...rest}) {
   const handleCustomerSubmit = async (data) => {
     if (data.id) {
       const { ok, data: updated } = await send(`/api/customers/${data.id}`, { method: 'PUT', body: data });
-      if (ok) setCustomers((prev) => prev.map((c) => (c.id === (updated?.id ?? data.id) ? (updated ?? data) : c)));
+      if (ok) {
+        setCustomers((prev) => prev.map((c) => (c.id === (updated?.id ?? data.id) ? (updated ?? data) : c)));
+        toast.success(t("customer.updatedSuccess")); 
+      }
       return ok;
     }
     const { ok, data: created } = await send('/api/customers', { method: 'POST', body: data });
-    if (ok && created) setCustomers((prev) => [...prev, created]);
+    if (ok && created) {
+      setCustomers((prev) => [...prev, created]);
+      toast.success(t("customer.addedSuccess"));
+      addLog("customers", t("logs.customerAdded", { name: created.name ?? data.name }));
+    }
     return ok;
   };
-
 
     return (
     <>

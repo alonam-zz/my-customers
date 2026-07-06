@@ -41,3 +41,7 @@ export const formatTime = (value, fallback = "") => {
   if (!d) return fallback;
   return `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
 };
+
+export const toISO = (d)=>{
+    return d.toISOString().slice(0,10)
+}

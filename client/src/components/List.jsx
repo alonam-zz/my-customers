@@ -1,9 +1,9 @@
 import React from 'react';
-import DataTable from "./components/DataTable.jsx";
+import DataTable from "./DataTable.jsx";
 
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { useI18n } from "./i18n/I18nProvider";
-import './App.css';
+import { useI18n } from "../i18n/I18nProvider";
+import '../App.css';
 
 function List(props) {
 
@@ -16,6 +16,7 @@ function List(props) {
   const initialSort = props.initialSort??{ key: "title", dir: "asc" };
   const updateDataByPage = props.updateDataByPage;
   const pageCount = props.pageCount;
+  const showPagination = props.showPagination??true;
 
   const listColumns = props.listColumns.map((c) => {
         // console.log(typeof c.customVal);
@@ -33,7 +34,7 @@ function List(props) {
     });
 
 
-  const hideActions = props.hideActions?props.hideActions:0; 
+  const hideActions = props.hideActions??0; 
   const allowEdit = props.allowEdit??true;
   const allowDelete = props.allowDelete??true;
 
@@ -103,6 +104,7 @@ function List(props) {
         onClickItem = {onClickItem}
         updateDataByPage = {updateDataByPage}
         pageCount = {pageCount}
+        showPagination = {showPagination}
       />
     </>
   );
@@ -140,7 +142,7 @@ function List(props) {
 
 }
 
-export default List
+export default React.memo(List)
 
 
 

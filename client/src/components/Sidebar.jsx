@@ -8,6 +8,7 @@ import {
 
 import { useI18n } from "../i18n/I18nProvider";
 
+
 /* Single nav item -> active link is highlighted by react-router NavLink */
 function Item({ to, icon, label }) {
   return (
@@ -63,7 +64,7 @@ export default function Sidebar() {
           {systemOpen && (
             <ul className="nav flex-column ms-4 gap-1 mt-1">
               <Item to="/users" icon={faUsers} label={t("menu.users")} />
-              <Item to="/system/logs" icon={faFileLines} label={t("menu.logs")} />
+              <Item to="/logs" icon={faFileLines} label={t("menu.logs")} />
             </ul>
           )}
         </li>

@@ -1,13 +1,16 @@
 import { useEffect, useMemo, useState } from "react";
-import List from "./List.jsx";
-import Modal from "./Modal.jsx";
-import ServiceForm from "./ServiceForm.jsx";
-import useApi from "./hooks/useApi.js";
-import { useI18n } from "./i18n/I18nProvider";
+import toast from "react-hot-toast";
+import List from "../components/List.jsx";
+import Modal from "../components/Modal.jsx";
+import ServiceForm from "../components/ServiceForm.jsx";
+import useApi from "../hooks/useApi.js";
+import { useAddLog } from "../utils/logs.js";
+import { useI18n } from "../i18n/I18nProvider";
 
 export default function ServicesList() {
   const { t, locale } = useI18n();
   const send = useApi();
+  const addLog = useAddLog();
   const [items, setItems] = useState([]);
   const [pageCount, setPageCount] = useState("");
   const [products, setProducts] = useState([]);
@@ -50,11 +53,18 @@ export default function ServicesList() {
   const handleSubmit = async (data) => {
     if (data.id) {
       const { ok, data: updated } = await send(`/api/services/${data.id}`, { method: "PUT", body: data });
-      if (ok) setItems((prev) => prev.map((s) => (s.id === (updated?.id ?? data.id) ? (updated ?? data) : s)));
+      if (ok) {
+        setItems((prev) => prev.map((s) => (s.id === (updated?.id ?? data.id) ? (updated ?? data) : s)));
+        toast.success(t("services.updateSuccess"));
+      }
       return ok;
     }
     const { ok, data: created } = await send("/api/services", { method: "POST", body: data });
-    if (ok && created) setItems((prev) => [...prev, created]);
+    if (ok && created) {
+      setItems((prev) => [...prev, created]);
+      toast.success(t("services.addedSuccess"));
+      addLog("services", t("logs.serviceAdded", { name: created.name ?? data.name }));
+    }
     return ok;
   };
 

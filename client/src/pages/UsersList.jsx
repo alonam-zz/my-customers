@@ -1,18 +1,29 @@
-import { useMemo, useState } from "react";
-import List from "./List.jsx";
-import Modal from "./Modal.jsx";
-import UserForm from "./UserForm.jsx";
-import useApi from "./hooks/useApi.js";
-import { useI18n } from "./i18n/I18nProvider";
+import { useMemo, useState ,useEffect} from "react";
+import toast from "react-hot-toast";
+import List from "../components/List.jsx";
+import Modal from "../components/Modal.jsx";
+import UserForm from "../components/UserForm.jsx";
+import useApi from "../hooks/useApi.js";
+import { useAddLog } from "../utils/logs.js";
+import { useI18n } from "../i18n/I18nProvider";
+import useAuth from "../auth/AuthProvider.jsx";
 
 export default function UsersList() {
   const { t, locale } = useI18n();
   const send = useApi();
+  const addLog = useAddLog();
   const [items, setItems] = useState([]);
   const [pageCount, setPageCount] = useState("");
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
   const [editItem, setEditItem] = useState({});
+  const [disableEdit, setDisableEdit] = useState(true);
+  const {user,isManager} = useAuth();
+
+  useEffect(()=>{
+        if (isManager()) setDisableEdit(false);
+      },
+  [])
 
   const fetchUsers = async (limit = 20, page = 1) => {
     try {
@@ -36,7 +47,14 @@ export default function UsersList() {
     const url = data.id ? `/api/employees/${data.id}` : "/api/employees";
     const method = data.id ? "PUT" : "POST";
     const { ok } = await send(url, { method, body: data });
-    if (ok) fetchUsers();
+    if (ok) {
+      fetchUsers();
+      if (data.id) toast.success(t("user.updatedSuccess"));
+      else {
+        toast.success(t("user.addedSuccess"));
+        addLog("employees", t("logs.userAdded", { name: [data.first_name, data.last_name].filter(Boolean).join(" ") }));
+      }
+    }
     return ok;
   };
 
@@ -69,7 +87,7 @@ export default function UsersList() {
         updateDataByPage={fetchUsers}
         pageCount={pageCount}
         hideActions={1}
-        onNew={() => openModal({})}
+        onNew={disableEdit?() => openModal({}):null}
         onClickItem={(item) => openModal(item)}
       />
       <Modal open={open} onClose={() => setOpen(false)}>
@@ -77,6 +95,7 @@ export default function UsersList() {
           initialUser={editItem}
           onSubmitForm={handleSubmit}
           onCloseForm={() => setOpen(false)}
+          disableEdit={disableEdit}
         />
       </Modal>
     </>

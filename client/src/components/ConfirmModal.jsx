@@ -1,5 +1,5 @@
 import React from "react";
-import Modal from "../Modal"; // <- your existing Modal (open/onClose/title/children)
+import Modal from "./Modal"; // <- your existing Modal (open/onClose/title/children)
 
 export default function ConfirmModal({
   open,

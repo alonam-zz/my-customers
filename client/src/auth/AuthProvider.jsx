@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useState } from "react";
+import { MANAGER_ROLES } from "../utils/constants";
 
 const AuthContext = createContext(null);
 
@@ -40,12 +41,19 @@ export function AuthProvider({ children }) {
     }
   }
 
+  function isManager(){
+    if (MANAGER_ROLES.includes(user.role)){
+      return true;
+    }
+    return false;
+  }
+
   useEffect(() => {
     checkAuth();
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, setUser, loading, checkAuth,logout }}>
+    <AuthContext.Provider value={{ user, setUser, loading, checkAuth,logout,isManager }}>
       {children}
     </AuthContext.Provider>
   );

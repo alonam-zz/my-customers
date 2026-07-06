@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useI18n } from "./i18n/I18nProvider";
+import { useI18n } from "../i18n/I18nProvider";
 
 const AVAILABILITY = ["available", "busy", "away", "inactive"];
 const LEVELS = ["L1", "L2", "L3"];
@@ -72,12 +72,12 @@ export default function SupportAgentForm({ initialAgent = {}, onSubmitForm, onCl
         <hr className="mt-2" />
 
         {/* ----- support agent fields ----- */}
-        <div className="col-12 col-md-6">
+        {/* <div className="col-12 col-md-6">
           <label className="form-label">{t("supportagent.level")}</label>
           <select className="form-select" name="level" value={form.level} onChange={handleChange}>
             {LEVELS.map((v) => <option key={v} value={v}>{v}</option>)}
           </select>
-        </div>
+        </div> */}
         <div className="col-12 col-md-6">
           <label className="form-label">{t("supportagent.specialization")}</label>
           <input className="form-control" name="specialization" value={form.specialization} onChange={handleChange} />
@@ -88,9 +88,9 @@ export default function SupportAgentForm({ initialAgent = {}, onSubmitForm, onCl
             {AVAILABILITY.map((v) => <option key={v} value={v}>{t(`avail.${v}`)}</option>)}
           </select>
         </div>
-        <div className="col-12 col-md-6">
+        <div className="col-12 col-md-3">
           <label className="form-label">{t("supportagent.max_open_calls")}</label>
-          <input type="number" min="0" className="form-control" name="max_open_calls" value={form.max_open_calls} onChange={handleChange} />
+          <input type="number" min="0"  className="form-control" name="max_open_calls" value={form.max_open_calls} onChange={handleChange} />
         </div>
       </div>
 

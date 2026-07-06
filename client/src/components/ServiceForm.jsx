@@ -1,6 +1,6 @@
 import { useState } from "react";
-import SearchSelect from "./components/SearchSelect.jsx";
-import { useI18n } from "./i18n/I18nProvider";
+import SearchSelect from "./SearchSelect.jsx";
+import { useI18n } from "../i18n/I18nProvider";
 
 /**
  * Props:

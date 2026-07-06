@@ -1,13 +1,16 @@
 import { useMemo, useState } from "react";
-import List from "./List.jsx";
-import Modal from "./Modal.jsx";
-import ProductForm from "./ProductForm.jsx";
-import useApi from "./hooks/useApi.js";
-import { useI18n } from "./i18n/I18nProvider";
+import toast from "react-hot-toast";
+import List from "../components/List.jsx";
+import Modal from "../components/Modal.jsx";
+import ProductForm from "../components/ProductForm.jsx";
+import useApi from "../hooks/useApi.js";
+import { useAddLog } from "../utils/logs.js";
+import { useI18n } from "../i18n/I18nProvider";
 
 export default function ProductsList() {
   const { t, locale } = useI18n();
   const send = useApi();
+  const addLog = useAddLog();
   const [items, setItems] = useState([]);
   const [pageCount, setPageCount] = useState("");
   const [loading, setLoading] = useState(true);
@@ -34,11 +37,18 @@ export default function ProductsList() {
   const handleSubmit = async (data) => {
     if (data.id) {
       const { ok, data: updated } = await send(`/api/products/${data.id}`, { method: "PUT", body: data });
-      if (ok) setItems((prev) => prev.map((p) => (p.id === (updated?.id ?? data.id) ? (updated ?? data) : p)));
-      return ok;
+      if (ok) {
+          setItems((prev) => prev.map((p) => (p.id === (updated?.id ?? data.id) ? (updated ?? data) : p)));
+          toast.success(t("products.updatedSuccess"));
+      }
+          return ok;
     }
     const { ok, data: created } = await send("/api/products", { method: "POST", body: data });
-    if (ok && created) setItems((prev) => [...prev, created]);
+    if (ok && created) {
+      setItems((prev) => [...prev, created]);
+      toast.success(t("products.addedSuccess"));
+      addLog("products", t("logs.productAdded", { name: created.name ?? data.name }));
+    }
     return ok;
   };
 
