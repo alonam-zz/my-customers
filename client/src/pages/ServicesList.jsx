@@ -61,7 +61,7 @@ export default function ServicesList() {
       const { ok, data: updated } = await send(`/api/services/${data.id}`, { method: "PUT", body: data });
       if (ok) {
         setItems((prev) => prev.map((s) => (s.id === (updated?.id ?? data.id) ? (updated ?? data) : s)));
-        toast.success(t("services.updateSuccess"));
+        toast.success(t("services.updatedSuccess"));
       }
       return ok;
     }
