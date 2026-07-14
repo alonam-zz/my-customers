@@ -7,7 +7,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: path.join(__dirname, '..', '.env') });
 
 // Recipient of every borrow request. Defined here as a constant (overridable via .env).
-export const MAIL_TO = process.env.MAIL_TO || 'alonam@gmail.com';
+export const MAIL_TO = process.env.MAIL_TO || 'admin@example.com';
 
 export const config = {
   port: Number(process.env.PORT) || 4000,
