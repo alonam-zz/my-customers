@@ -1,5 +1,7 @@
-function getAgeScore(ticket, hoursSinceTouched) {
-  const status = ticket.status;
+
+export function getAgeScore(call,hoursSinceTouched) {
+  const status = call.status;
+  const last_updated = call.last_updated;
 
   if (status === "closed") return 0;
 
@@ -36,10 +38,7 @@ function getAgeScore(ticket, hoursSinceTouched) {
   return 0;
 }
 
-function calculateUrgencyScore(call) {
-  if (ticket.status === "סגורה") {
-    return 0;
-  }
+export function getUrgencyScore(call) {
 
   const STATUS_SCORE = {
     "closed": 0,
@@ -76,8 +75,8 @@ function calculateUrgencyScore(call) {
   const hoursSinceTouched =
     (now.getTime() - touchedAt.getTime()) / 1000 / 60 / 60;
 
-  const statusScore = STATUS_SCORE[ticket.status] ?? 0;
-  const priorityScore = PRIORITY_SCORE[ticket.priority] ?? 0;
+  const statusScore = STATUS_SCORE[call.status] ?? 0;
+  const priorityScore = PRIORITY_SCORE[call.priority] ?? 0;
   const typeScore = TYPE_SCORE[call.type] ?? 0;
   const ageScore = getAgeScore(call, hoursSinceTouched);
 

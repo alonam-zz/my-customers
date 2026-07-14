@@ -1,0 +1,50 @@
+﻿code,name,parent_code,sort_order,is_active
+north,צפון,,1,1
+haifa_krayot,חיפה והקריות,,20,1
+center,מרכז,,40,1
+jerusalem_area,ירושלים והסביבה,,70,1
+south,דרום,,90,1
+judea_samaria,יהודה ושומרון,,120,1
+upper_galilee,גליל עליון,north,2,1
+lower_galilee,גליל תחתון,north,3,1
+golan,רמת הגולן,north,4,1
+kineret,כנרת והסביבה,north,5,1
+valleys,עמקים,north,6,1
+beit_shean_valley,עמק בית שאן,north,7,1
+jezreel_valley,עמק יזרעאל,north,8,1
+nahariya_akko,נהריה ועכו,north,9,1
+carmel_coast,חוף הכרמל,north,10,1
+haifa,חיפה,haifa_krayot,21,1
+krayot,הקריות,haifa_krayot,22,1
+nesher_tirat_carmel,נשר וטירת כרמל,haifa_krayot,23,1
+yokneam,יקנעם והסביבה,haifa_krayot,24,1
+sharon_north,שרון צפוני,center,41,1
+sharon_south,שרון דרומי,center,42,1
+netanya_area,נתניה והסביבה,center,43,1
+hadera_area,חדרה והסביבה,center,44,1
+hashfela,שפלה,center,45,1
+modiin_area,מודיעין והסביבה,center,46,1
+gush_dan,גוש דן,center,47,1
+tel_aviv,תל אביב,center,48,1
+ramat_gan_givatayim,רמת גן וגבעתיים,center,49,1
+petah_tikva_area,פתח תקווה והסביבה,center,50,1
+rishon_holon_bat_yam,"ראשון לציון, חולון ובת ים",center,51,1
+rehovot_nes_ziona,רחובות ונס ציונה,center,52,1
+lod_ramla,לוד ורמלה,center,53,1
+jerusalem,ירושלים,jerusalem_area,71,1
+mevaseret_area,מבשרת והסביבה,jerusalem_area,72,1
+beit_shemesh_area,בית שמש והסביבה,jerusalem_area,73,1
+mateh_yehuda,מטה יהודה,jerusalem_area,74,1
+ashdod_area,אשדוד והסביבה,south,91,1
+ashkelon_area,אשקלון והסביבה,south,92,1
+kiryat_gat_area,קריית גת והסביבה,south,93,1
+beer_sheva_negev,באר שבע והנגב,south,94,1
+western_negev,נגב מערבי,south,95,1
+dead_sea_area,ים המלח והסביבה,south,96,1
+arava,הערבה,south,97,1
+eilat,אילת,south,98,1
+binyamin,בנימין,judea_samaria,121,1
+samaria,שומרון,judea_samaria,122,1
+gush_etzion,גוש עציון,judea_samaria,123,1
+hebron_hills,הר חברון,judea_samaria,124,1
+jordan_valley,בקעת הירדן,judea_samaria,125,1

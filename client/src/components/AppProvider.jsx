@@ -6,7 +6,7 @@ import { getCookie, setCookie } from "../utils/cookies.js";
 
 function LanguageSwitcher() {
   const { locale, setLocale } = useI18n();  
-  const next = locale === "he" ? "en" : "he"; console.log(next);
+  const next = locale === "he" ? "en" : "he";
 
   const handleLocaleChange = () => {
     setLocale(next);

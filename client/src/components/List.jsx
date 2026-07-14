@@ -26,6 +26,8 @@ function List(props) {
           width: c.width,                 // 1..12 maps to Bootstrap %-width
           truncate: c.truncate,
           sortable: c.sortable ?? true,
+          hide: c.hide,
+          filter: c.filter,               // text/select filter descriptor (see DataTable)
           render:c.render??undefined
           
           // let customVal(row) compute live; else default to row[c.key]
@@ -59,7 +61,6 @@ function List(props) {
   const myfunc = () => {
     alert('Hello World');
   };
-  console.log(allowDelete);
 
   const elementActions = (e) => {
      return (

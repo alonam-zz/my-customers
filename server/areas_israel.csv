@@ -1,0 +1,24 @@
+﻿code,name,parent_code,sort_order,is_active
+north,צפון,,1,1
+upper_galilee,גליל עליון,north,10,1
+lower_galilee,גליל תחתון,north,20,1
+golan,רמת הגולן,north,30,1
+valleys,עמקים,north,40,1
+haifa_krayot,חיפה והקריות,north,50,1
+center,מרכז,,100,1
+sharon_north,שרון צפוני,center,110,1
+sharon_south,שרון דרומי,center,120,1
+gush_dan,גוש דן,center,130,1
+petah_tikva_area,פתח תקווה והסביבה,center,140,1
+shfela,שפלה,center,150,1
+modiin_area,מודיעין והסביבה,center,160,1
+jerusalem_area,ירושלים והסביבה,,200,1
+beit_shemesh_area,בית שמש והסביבה,jerusalem_area,210,1
+south,דרום,,300,1
+ashdod_ashkelon,אשדוד ואשקלון,south,310,1
+beersheba_negev,באר שבע והנגב,south,320,1
+arava_eilat,אילת והערבה,south,330,1
+west_bank,יהודה ושומרון,,400,1
+samaria,שומרון,west_bank,410,1
+judea,יהודה,west_bank,420,1
+jordan_valley,בקעת הירדן,west_bank,430,1

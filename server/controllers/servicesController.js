@@ -4,12 +4,14 @@ import servicesModel from "../models/services.model.js";
 
 // Get all services
 async function getAllServices(req, res){
-    console.log("GET /api/services called");
   try {
     const page = Number(req.query.page) || 1;
     const limit = Number(req.query.limit) || 20;
     const offset = (page - 1) * limit;
-    const {total,items} = await servicesModel.getAll(limit,offset);
+    const sortBy = req.query.sortBy;
+    const sortDir = req.query.sortDir;
+    const filter = req.query.filter ? JSON.parse(req.query.filter) : {};
+    const {total,items} = await servicesModel.getAll(sortBy,sortDir,limit,offset,filter);
     const totalPages = Math.ceil(total/limit)
     res.json({items:items,pagination:{total:total,limit:limit,page:page,totalPages:totalPages}});
   } catch (error) {

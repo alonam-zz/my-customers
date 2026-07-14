@@ -1,5 +1,4 @@
 // Date/time helper functions.
-
 // Pad a number to 2 digits: 5 -> "05"
 const pad2 = (n) => String(n).padStart(2, "0");
 
@@ -19,7 +18,7 @@ export const toDate = (value) => {
 export const formatDateTime = (value, fallback = "") => {
   const d = toDate(value);
   if (!d) return fallback;
-  const date = `${pad2(d.getDate())}-${pad2(d.getMonth() + 1)}-${pad2(d.getFullYear() % 100)}`;
+  const date = `${pad2(d.getDate())}-${pad2(d.getMonth() + 1)}-${pad2(d.getFullYear())}`;
   const time = `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
   return `${date} ${time}`;
 };
@@ -42,6 +41,6 @@ export const formatTime = (value, fallback = "") => {
   return `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
 };
 
-export const toISO = (d)=>{
-    return d.toISOString().slice(0,10)
+export const toISO = (d,sliceTo=10)=>{
+    return d.toISOString().slice(0,sliceTo)
 }

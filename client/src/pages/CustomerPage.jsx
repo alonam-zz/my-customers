@@ -3,6 +3,7 @@ import toast from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
 import { Tabs, Tab } from "react-bootstrap";
 import Modal from '../components/Modal.jsx'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 
 import CustomerForm from "../components/CustomerForm.jsx";
 import CallForm from "../components/CallForm.jsx";
@@ -14,8 +15,9 @@ import useApi from "../hooks/useApi.js";
 import { useAddLog } from "../utils/logs.js";
 import { useI18n } from "../i18n/I18nProvider";
 import { formatDateTime } from "../utils/date.js";
-import {STATUS_BADGE,PRIORITY_BADGE} from "../utils/constants.js"
-
+import {STATUS_BADGE,PRIORITY_BADGE,PAGE_SIZE,EMAIL_RE,CALL_STATUSES,CALL_PRIORITIES} from "../utils/constants.js"
+import useAuth from "../auth/AuthProvider.jsx";
+import { useAlert } from "../components/ConfirmProvider.jsx";
 
 
 export default function CustomerPage({ customerId,initialTab = "details" }) {
@@ -25,29 +27,42 @@ export default function CustomerPage({ customerId,initialTab = "details" }) {
   const send = useApi();
   const confirm = useConfirm();
   const addLog = useAddLog();
-  console.log(initialTab);
   // const initialTab = propTypes.initialTab;
+
+  const {user} = useAuth();
 
   const [loading, setLoading] = useState(true);
   const [customer, setCustomer] = useState(null);
   const [calls, setCalls] = useState([]);
   const [callPageCount, setCallsPageCount] = useState("");
+  const [callsLimit, setCallsLimit] = useState(PAGE_SIZE);
   const [customerProducts, setCustomerProducts] = useState([]);
   const [productsPageCount, setProductsPageCount] = useState("");
   const [allProducts, setAllProducts] = useState([]);
   const [technicians, setTechnicians] = useState([]);
   const [supportAgents, setSupportAgents] = useState([]);
+  const [areas, setAreas] = useState([]);
   const [openCallModal, setOpenCallModal] = useState(false);
   const [openedCallItem,setOpenedCallItem] = useState({customer_id:customerId})
 
+  const alert = useAlert();
+
+  // load the grouped areas once for the customer form's region <Select>
+  useEffect(() => {
+    (async () => {
+      const { ok, data } = await send("/api/areas");
+      if (ok) setAreas(Array.isArray(data.items) ? data.items : []);
+    })();
+  }, []);
+  
   // ----- load the customer (GET /api/customers/:id) -----
   useEffect(() => {
     let cancelled = false;
     async function load() {
       try {
         setLoading(true);
-        const res = await fetch(`/api/customers/${customerId}`);
-        const data = await res.json();
+        const { ok, data } = await send(`/api/customers/${customerId}`);
+        if (!ok) return;
         if (!cancelled) setCustomer(data[0]);
       } catch (e) {
         console.error("Error loading customer:", e);
@@ -65,12 +80,13 @@ export default function CustomerPage({ customerId,initialTab = "details" }) {
   }, [customer, customerId, setLabel]);
 
   // ----- load this customer's calls (GET — server side added later) -----
-  const fetchCalls = async (limit = 20, page = 1) => {
+  const fetchCalls = async (limit = 20, page = 1, sortBy, sortDir, filter) => {
     try {
-      const res = await fetch(`/api/serviceCalls/${customerId}/calls?limit=${limit}&page=${page}`);
-      const data = await res.json();
+      const { ok, data } = await send(`/api/serviceCalls/${customerId}/calls?limit=${limit}&page=${page}${sortBy ? `&sortBy=${sortBy}&sortDir=${sortDir}` : ""}${filter && Object.keys(filter).length ? `&filter=${encodeURIComponent(JSON.stringify(filter))}` : ""}`);
+      if (!ok) return;
       setCalls(Array.isArray(data.items) ? data.items : []);
       setCallsPageCount(data?.pagination.totalPages);
+      setCallsLimit(data?.pagination?.limit ?? PAGE_SIZE);
     } catch (e) {
       console.error("Error loading calls:", e);
       setCalls([]);
@@ -80,29 +96,11 @@ export default function CustomerPage({ customerId,initialTab = "details" }) {
 
   // ----- load technicians + support agents for the CallForm dropdowns -----
   // mapped to { id, name } since SearchSelect expects a name field.
-  const fetchCallRefs = async () => {
-    try {
-      const [tRes, saRes] = await Promise.all([
-        fetch(`/api/technicians?all=1`),
-        fetch(`/api/supportAgents?all=1`),
-      ]);
-      const techs = await tRes.json();
-      const agents = await saRes.json();
-      const toOption = (r) => ({
-        id: r.id,
-        name: [r.first_name, r.last_name].filter(Boolean).join(" "),
-      });
-      setTechnicians(Array.isArray(techs.items) ? techs.items.map(toOption) : []);
-      setSupportAgents(Array.isArray(agents.items) ? agents.items.map(toOption) : []);
-    } catch (e) {
-      console.error("Error loading technicians/support agents:", e);
-    }
-  };
+  
 
   // open the CallForm modal seeded with the clicked call (or a fresh one for "new")
   const onOpenCallListItem = async (item) => {
     if (!customerProducts.length) await fetchCustomerProducts();
-    if (!technicians.length || !supportAgents.length) await fetchCallRefs();
     setOpenedCallItem(item);
     setOpenCallModal(true);
   }
@@ -120,18 +118,18 @@ export default function CustomerPage({ customerId,initialTab = "details" }) {
     if (deleted) setCalls((prev) => prev.filter((c) => c.id !== item.id));
   }
 
-  const handleCallSubmit = async (data) => {
+  const handleCallSubmit = async (data,showToast = true) => {
     if (data.id) {
       const { ok, data: updated } = await send(`/api/serviceCalls/${data.id}`, { method: 'PUT', body: data });
       if (ok) {
         setCalls((prev) => prev.map((c) => (c.id === (updated?.id ?? data.id) ? (updated ?? data) : c)));
-        toast.success(t("servicecall.updatedSuccess")); 
+        if (showToast) toast.success(t("servicecall.updatedSuccess")); 
       }
       return ok;
     }
     const { ok, data: created } = await send('/api/serviceCalls', { method: 'POST', body: data });
     if (ok && created) {
-      setCalls((prev) => [...prev, created]);
+      fetchCalls();
       toast.success(t("servicecall.addedSuccess"));
       addLog("service_calls", t("logs.callAdded", { name: created.title ?? data.title }));
     }
@@ -140,10 +138,10 @@ export default function CustomerPage({ customerId,initialTab = "details" }) {
 
 
   // ----- load this customer's products + the full catalog (for the add box) -----
-  const fetchCustomerProducts = async (limit = 20, page = 1) => {
+  const fetchCustomerProducts = async (limit = 20, page = 1, sortBy, sortDir) => {
     try {
       const [cpRes, pRes] = await Promise.all([
-        fetch(`/api/customers/${customerId}/products?limit=${limit}&page=${page}`),
+        fetch(`/api/customers/${customerId}/products?limit=${limit}&page=${page}${sortBy ? `&sortBy=${sortBy}&sortDir=${sortDir}` : ""}`),
         fetch(`/api/products?all=1`),
       ]);
       const cp = await cpRes.json();
@@ -170,6 +168,16 @@ export default function CustomerPage({ customerId,initialTab = "details" }) {
   // ----- save (PUT /api/customers/:id) -----
   // returns true on success so the form knows whether to close.
   const handleSave = async (data) => {
+    if (data.email.trim() && !EMAIL_RE.test(data.email.trim())) {
+      await alert({
+          title: t("common.errorTitle"),
+          message: t("messages.errEmail") ,
+          confirmText: t("common.ok"),
+          variant: "danger",
+        });
+      return;
+
+    }
     const { ok, data: updated } = await send(`/api/customers/${data.id}`, { method: "PUT", body: data });
     if (ok && updated) {
       setCustomer(updated);
@@ -182,7 +190,7 @@ export default function CustomerPage({ customerId,initialTab = "details" }) {
   const callColumns = useMemo(
     () => [
       {
-        key: "id", label: t("servicecall.id"), width: 1,
+        key: "id", label: t("servicecall.id"), width: 1,hide:true,
         render: (r) => (
           <button type="button" className="btn btn-sm btn-link p-0 text-decoration-none" onClick={() => navigate(`/customers/${customerId}/calls/${r.id}`)}>
             #{r.id}
@@ -190,14 +198,24 @@ export default function CustomerPage({ customerId,initialTab = "details" }) {
         ),
       },
       {
+        key: "token", label: t("servicecall.token"), width: 1, filter: true,
+        render: (r) => (
+          <button type="button" className="btn btn-sm btn-link p-0 text-decoration-none" onClick={() => navigate(`/customers/${customerId}/calls/${r.id}`)}>
+            {r.token}
+          </button>
+        ),
+      },
+      {
         key: "created_at", label: t("servicecall.openedAt"), width: 2,
         render: (r) => formatDateTime(r.created_at),
+        filter: { type: "date"}
       },
-      { key: "title", label: t("servicecall.callTitle") ,truncate:1},
+      { key: "title", label: t("servicecall.callTitle") ,truncate:1, filter: true},
       {
         key: "status",
         label: t("servicecall.status"),
         width: 2,
+        filter: { type: "select", options: CALL_STATUSES.map((s) => ({ value: s, label: t(`callStatus.${s}`) })) },
         render: (r) => (
           <span className={`badge ${STATUS_BADGE[r.status] || "text-bg-secondary"}`}>
             {t(`callStatus.${r.status}`)}
@@ -208,6 +226,7 @@ export default function CustomerPage({ customerId,initialTab = "details" }) {
         key: "priority",
         label: t("servicecall.priority"),
         width: 1,
+        filter: { type: "select", options: CALL_PRIORITIES.map((v) => ({ value: v, label: t(`callPriority.${v}`) })) },
         render: (r) => (
           <span className={`badge ${PRIORITY_BADGE[r.priority] || "text-bg-secondary"}`}>
             {t(`callPriority.${r.priority}`)}
@@ -219,13 +238,15 @@ export default function CustomerPage({ customerId,initialTab = "details" }) {
         key: "support_agent_name",
         label: t("servicecall.responsible"),
         width: 2,
-        truncate:1
+        truncate:1,
+        filter: true,
       },
       {
         key: "technician_name",
         label: t("servicecall.technician_name"),
         width: 2,
-        truncate:1
+        truncate:1,
+        filter: true,
       },
     ],
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -248,7 +269,17 @@ export default function CustomerPage({ customerId,initialTab = "details" }) {
 
   return (
     <div className="container-fluid">
-      <h1 className="mb-3">{customer?.name || t("customer.title")}</h1>
+      <div className="d-flex mb-3">
+        <h1 className="flex-grow-1">{customer?.name || t("customer.title")}</h1>
+        <button
+            className="align-items-center btn btn-primary d-flex float-start gap-2"
+            onClick={()=>onOpenCallListItem({ customer_id: customerId })}
+          >
+            <FontAwesomeIcon icon={['fas', 'plus']} className="icon-inherit-size" />
+            {t("servicecall.openNewCAll")}
+          </button>
+      </div>
+      
 
       <Tabs
         defaultActiveKey={initialTab?initialTab:"details"}
@@ -258,8 +289,8 @@ export default function CustomerPage({ customerId,initialTab = "details" }) {
         <Tab eventKey="details" title={t("customer.tabDetails")}>
           <CustomerForm
             initialCustomer={customer || {}}
+            areas={areas}
             onSubmitForm={handleSave}
-            onCloseForm={() => navigate("/customers")}
           />
         </Tab>
 
@@ -272,7 +303,7 @@ export default function CustomerPage({ customerId,initialTab = "details" }) {
             updateDataByPage={fetchCalls}
             pageCount={callPageCount}
             newLabel ={t("servicecall.openNewCAll")}
-            onNew={() => onOpenCallListItem({ customer_id: customerId })}
+            // onNew={() => onOpenCallListItem({ customer_id: customerId })}
             onOpenItem={(item) => onOpenCallListItem(item)}
             onDeleteItem={(item) => onDeleteCallListItem(item)}
             allowDelete = {false}
@@ -282,6 +313,7 @@ export default function CustomerPage({ customerId,initialTab = "details" }) {
               onSubmitForm = {handleCallSubmit}
               supportAgents = {supportAgents}
               technicians = {technicians}
+              disabled={user.role=="technician" || openedCallItem.status=='closed'}
               onCloseForm = {()=>setOpenCallModal(false)}/>
             </Modal>
         </Tab>

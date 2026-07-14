@@ -1,0 +1,76 @@
+services:
+  db:
+    image: mysql:8.4
+    restart: unless-stopped
+
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+      MYSQL_DATABASE: ${DB_NAME}
+      MYSQL_USER: ${DB_USER}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+     
+
+    ports:
+      - "3307:3306"
+
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./database/init:/docker-entrypoint-initdb.d:ro
+      - ./database/csv:/var/lib/mysql-files
+
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "mysqladmin ping -h localhost -u root -p$$DB_PASSWORD"
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  server:
+    build:
+      context: ./server
+      network: host
+
+    restart: unless-stopped
+
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      SMTP_HOST: smtp.gmail.com
+      SMTP_PORT: 587
+      MAIL_SECURE: "false"
+      SMTP_USER: ${SMTP_USER}
+      SMTP_PASS: ${SMTP_PASS}
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      AUTH_COOKIE_NAME: crm_docker_token
+      JWT_SECRET: ${JWT_SECRET}
+      DOMAIN: ${DOMAIN}
+
+    depends_on:
+      db:
+        condition: service_healthy
+
+    ports:
+      - "3000:3000"
+
+  client:
+    build:
+      context: ./client
+      network: host
+
+    restart: unless-stopped
+
+    depends_on:
+      - server
+
+    ports:
+      - "5175:80"
+
+volumes:
+  mysql_data:

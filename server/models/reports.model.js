@@ -18,10 +18,10 @@ async function getShortReportById(report,filter,limit,offset){
   let sql = "",fields = "";
   let where = "";
   let params = [];
-  if (filter){ console.log(filter);
-    where += Object.keys(filter).map((key)=>{ console.log(key+'ddd '+filter[key]);
-        
-        if (Array.isArray(filter[key])){ console.log(" array "+key)
+  if (filter){
+    where += Object.keys(filter).map((key)=>{
+
+        if (Array.isArray(filter[key])){
           if (filter[key].length)
             params.push(...filter[key])
           else return "1=1";
@@ -80,24 +80,18 @@ async function getShortReportById(report,filter,limit,offset){
   switch (report){
     case "status": //status,percent,
       sql += 'GROUP BY status ORDER BY status ';
-      console.log(fields);
       break;
     case "technician": //status,percent,
       sql += 'GROUP BY t.id ORDER BY technician_name ';
-      console.log(fields);
       break;
     case "supportAgent": //
       sql += 'GROUP BY s.id ORDER BY support_agent_name ';
-      console.log(fields);
       break;
     case "type": //status,percent,
       sql += 'GROUP BY type ORDER BY type ';
-      console.log(fields);
       break;
   }
 
-  console.log(sql);
-  console.log(params);
   // const [total] = await pool.execute('SELECT COUNT(*) AS total from customers');
   const [items] = await pool.execute(sql +'LIMIT '+limit +' OFFSET '+offset, params);
   return {items:items};

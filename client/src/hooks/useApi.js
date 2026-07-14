@@ -1,7 +1,8 @@
 import { useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAlert } from "../components/ConfirmProvider.jsx";
 import { useI18n } from "../i18n/I18nProvider";
-
+import useAuth from "../auth/AuthProvider.jsx";
 /**
  * Centralised create/update/delete caller.
  * On any failure (network error or non-2xx, e.g. 500) it raises a modal
@@ -15,6 +16,8 @@ import { useI18n } from "../i18n/I18nProvider";
 export default function useApi() {
   const alert = useAlert();
   const { t } = useI18n();
+  const {logout} = useAuth(); 
+  const navigate = useNavigate();
 
   return useCallback(async (url, { method = "GET", body } = {}) => {
     try {
@@ -33,12 +36,31 @@ export default function useApi() {
         // surface the controller's message so the caller can show/translate it
         // server error shapes: { error } (controllers) or { message } (auth)
         const message = payload?.error || payload?.message || null;
-        await alert({
+        // session expired / not authenticated → send the user back to the root
+        if (res.status === 401) {
+          logout();
+          navigate("/login");
+         
+          // return { ok: false, data: null, error: message, status: 403 };
+        }
+        if (res.status === 403) {
+          await alert({
           title: t("common.errorTitle"),
           message: t("messages."+message) || t("common.errorMessage"),
           confirmText: t("common.ok"),
           variant: "danger",
         });
+          return navigate("/");
+  
+          // return { ok: false, data: null, error: message, status: 401 };
+        }else{
+          await alert({
+            title: t("common.errorTitle"),
+            message: t("messages."+message) || t("common.errorMessage"),
+            confirmText: t("common.ok"),
+            variant: "danger",
+          });
+        }
         return { ok: false, data: null, error: message, status: res.status };
       }
 
@@ -53,5 +75,5 @@ export default function useApi() {
       });
       return { ok: false, data: null, error: e.message, status: 0 };
     }
-  }, [alert, t]);
+  }, [alert, t,navigate]);
 }

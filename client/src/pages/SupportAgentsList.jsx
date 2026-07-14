@@ -4,29 +4,34 @@ import List from "../components/List.jsx";
 import Modal from "../components/Modal.jsx";
 import SupportAgentForm from "../components/SupportAgentForm.jsx";
 import useApi from "../hooks/useApi.js";
+import { PAGE_SIZE ,AVAILABILITY,EMAIL_RE} from "../utils/constants.js";
 import { useI18n } from "../i18n/I18nProvider";
 import { useAlert } from "../components/ConfirmProvider.jsx";
 import useAuth from "../auth/AuthProvider.jsx";
+
+
 
 export default function SupportAgentsList() {
   const { t, locale } = useI18n();
   const send = useApi();
   const [items, setItems] = useState([]);
   const [pageCount, setPageCount] = useState("");
+  const [pageLimit, setPageLimit] = useState(PAGE_SIZE);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
   const [editItem, setEditItem] = useState({});
-  const {user} = useAuth();
+  const {user,authDisableEdit} = useAuth();
 
-  alert = useAlert();
+  const alert = useAlert();
 
-  const fetchAgents = async (limit = 20, page = 1) => {
+  const fetchAgents = async (limit = 20, page = 1, sortBy, sortDir, filter) => {
     try {
       setLoading(true);
-      const res = await fetch(`/api/supportAgents?limit=${limit}&page=${page}`);
-      const data = await res.json();
+      const { ok, data } = await send(`/api/supportAgents?limit=${limit}&page=${page}${sortBy ? `&sortBy=${sortBy}&sortDir=${sortDir}` : ""}${filter && Object.keys(filter).length ? `&filter=${encodeURIComponent(JSON.stringify(filter))}` : ""}`);
+      if (!ok) return;
       setItems(Array.isArray(data.items) ? data.items : []);
       setPageCount(data?.pagination.totalPages);
+      setPageLimit(data?.pagination?.limit ?? PAGE_SIZE);
     } catch (e) {
       console.error("Error fetching support agents:", e);
     } finally {
@@ -39,6 +44,15 @@ export default function SupportAgentsList() {
   // create also creates the employee (handled server-side in one call).
   // returns true on success so the form knows whether to close.
   const handleSubmit = async (data) => {
+    if (data.email.trim() && !EMAIL_RE.test(data.email.trim())) {
+      await alert({
+          title: t("common.errorTitle"),
+          message: t("messages.errEmail") ,
+          confirmText: t("common.ok"),
+          variant: "danger",
+        });
+      return;
+    }
     if (data.max_open_calls>100){
       await alert({
           title: t("common.errorTitle"),
@@ -48,9 +62,9 @@ export default function SupportAgentsList() {
         });
       return;
     }
-    const url = data.id ? `/api/supportAgents/${data.id}` : "/api/supportAgents";
+    const url = data.id ? `/api/supportAgents/${data.id}` : "/api/employees";
     const method = data.id ? "PUT" : "POST";
-    const { ok } = await send(url, { method, body: data });
+    const { ok } = await send(url, { method, body: {...data,role:'support'} });
     if (ok) {
       fetchAgents(); // refresh (joined employee fields)
       if (data.id) toast.success(t("supportagent.updatedSuccess")); 
@@ -64,14 +78,16 @@ export default function SupportAgentsList() {
     {
       key: "name", label: t("employee.name"),
       render: (r) => [r.first_name, r.last_name].filter(Boolean).join(" "),
+      filter: true,
     },
-    { key: "email", label: t("employee.email") },
-    { key: "phone", label: t("employee.phone"), width: 2 },
+    { key: "email", label: t("employee.email"), filter: true },
+    { key: "phone", label: t("employee.phone"), width: 2, filter: true },
     { key: "level", label: t("supportagent.level"), width: 1 },
-    { key: "specialization", label: t("supportagent.specialization") },
+    { key: "specialization", label: t("supportagent.specialization"), filter: true },
     {
       key: "availability_status", label: t("employee.availability"), width: 2,
       render: (r) => (r.availability_status ? t(`avail.${r.availability_status}`) : ""),
+      filter: { type: "select", options: AVAILABILITY.map((v) => ({ value: v, label: t(`avail.${v}`) })) },
     },
     { key: "max_open_calls", label: t("supportagent.max_open_calls"), width: 2 },
   ], [t, locale]);
@@ -89,7 +105,7 @@ export default function SupportAgentsList() {
         updateDataByPage={fetchAgents}
         pageCount={pageCount}
         hideActions={1}
-        onNew={() => openModal({})}
+        onNew={!authDisableEdit?() => openModal({}):""}
         onClickItem={(item) => openModal(item)}
       />
       <Modal open={open} onClose={() => setOpen(false)}>
@@ -97,6 +113,7 @@ export default function SupportAgentsList() {
           initialAgent={editItem}
           onSubmitForm={handleSubmit}
           onCloseForm={() => setOpen(false)}
+          disableEdit={authDisableEdit}
         />
       </Modal>
     </>

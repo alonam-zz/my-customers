@@ -1,6 +1,7 @@
 import React, { useEffect ,useState,useMemo} from 'react'
 import List from "../components/List.jsx";
 import { useI18n } from "../i18n/I18nProvider";
+import useApi from "../hooks/useApi.js";
 import Select from '../components/Select.jsx';
 import SearchSelect from '../components/SearchSelect.jsx';
 import {ALL_LOGS} from "../utils/constants.js"
@@ -12,6 +13,7 @@ import { toISO } from "../utils/date.js";
 
 function Logs() {
     const { t, locale } = useI18n();
+    const send = useApi();
     // const [log_id, setlog_id] = useState([]);
     // const [fromDate,setFromDate] = useState([]);
     // const [toDate, setToDate] = useState([]);
@@ -34,23 +36,23 @@ function Logs() {
     const fetchLogItems = async(limit=20,page=1)=>{
         setLoading(true);
         const qs = new URLSearchParams({ filter: JSON.stringify(logForm) })
-        const res = await fetch(`api/logs?${qs}&limit=${limit}&page=${page}`);
-        const data = await res.json();
-        setLogItems(data.items);
-        setPageCount(data?.pagination.totalPages);
+        const { ok, data } = await send(`api/logs?${qs}&limit=${limit}&page=${page}`);
+        if (ok) {
+          setLogItems(data.items);
+          setPageCount(data?.pagination.totalPages);
+        }
         setLoading(false)
     }
 
-    const logFormChanged = (e)=>{ console.log(e);
+    const logFormChanged = (e)=>{
         const { name, value } = e.target;
-        console.log(value);
         setLogForm((prev)=>({...prev,[name]:value}));
     }
 
     useEffect(()=>{
         async function load(){
-            const employeesRes = await fetch(`/api/employees?all=1`);
-            const data = await employeesRes.json();
+            const { ok, data } = await send(`/api/employees?all=1`);
+            if (!ok) return;
 
             const toOption = (r) => ({
                 id: r.id,

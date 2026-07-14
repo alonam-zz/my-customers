@@ -4,8 +4,10 @@ import List from "../components/List.jsx";
 import Modal from "../components/Modal.jsx";
 import ServiceForm from "../components/ServiceForm.jsx";
 import useApi from "../hooks/useApi.js";
+import { PAGE_SIZE } from "../utils/constants.js";
 import { useAddLog } from "../utils/logs.js";
 import { useI18n } from "../i18n/I18nProvider";
+import useAuth from "../auth/AuthProvider.jsx";
 
 export default function ServicesList() {
   const { t, locale } = useI18n();
@@ -13,18 +15,22 @@ export default function ServicesList() {
   const addLog = useAddLog();
   const [items, setItems] = useState([]);
   const [pageCount, setPageCount] = useState("");
+  const [pageLimit, setPageLimit] = useState(PAGE_SIZE);
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
   const [editItem, setEditItem] = useState({});
 
-  const fetchServices = async (limit = 20, page = 1) => {
+  const {user,authDisableEdit} = useAuth();
+
+  const fetchServices = async (limit = 20, page = 1, sortBy, sortDir, filter) => {
     try {
       setLoading(true);
-      const res = await fetch(`/api/services?limit=${limit}&page=${page}`);
-      const data = await res.json();
+      const { ok, data } = await send(`/api/services?limit=${limit}&page=${page}${sortBy ? `&sortBy=${sortBy}&sortDir=${sortDir}` : ""}${filter && Object.keys(filter).length ? `&filter=${encodeURIComponent(JSON.stringify(filter))}` : ""}`);
+      if (!ok) return;
       setItems(Array.isArray(data.items) ? data.items : []);
       setPageCount(data?.pagination.totalPages);
+      setPageLimit(data?.pagination?.limit ?? PAGE_SIZE);
     } catch (e) {
       console.error("Error fetching services:", e);
     } finally {
@@ -35,8 +41,8 @@ export default function ServicesList() {
   const fetchProducts = async () => {
     try {
       // high limit: the dropdown needs every product, not just one page
-      const res = await fetch("/api/products?all=1");
-      const data = await res.json();
+      const { ok, data } = await send("/api/products?all=1");
+      if (!ok) return;
       setProducts(Array.isArray(data.items) ? data.items : []);
     } catch (e) {
       console.error("Error fetching products:", e);
@@ -61,7 +67,7 @@ export default function ServicesList() {
     }
     const { ok, data: created } = await send("/api/services", { method: "POST", body: data });
     if (ok && created) {
-      setItems((prev) => [...prev, created]);
+      fetchServices();
       toast.success(t("services.addedSuccess"));
       addLog("services", t("logs.serviceAdded", { name: created.name ?? data.name }));
     }
@@ -69,8 +75,8 @@ export default function ServicesList() {
   };
 
   const listColumns = useMemo(() => [
-    { key: "name", label: t("services.name") },
-    { key: "description", label: t("services.description"), truncate: true },
+    { key: "name", label: t("services.name"), filter: true },
+    { key: "description", label: t("services.description"), truncate: true, filter: true },
     { key: "price", label: t("services.price"), width: 2 },
   ], [t, locale]);
 
@@ -87,7 +93,7 @@ export default function ServicesList() {
         updateDataByPage={fetchServices}
         pageCount={pageCount}
         hideActions={1}
-        onNew={() => openModal({})}
+        onNew={!authDisableEdit?() => openModal({}):""}
         onClickItem={(item) => openModal(item)}
       />
       <Modal open={open} onClose={() => setOpen(false)}>
@@ -96,6 +102,7 @@ export default function ServicesList() {
           products={products}
           onSubmitForm={handleSubmit}
           onCloseForm={() => setOpen(false)}
+          disableEdit={authDisableEdit}
         />
       </Modal>
     </>

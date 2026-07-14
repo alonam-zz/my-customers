@@ -55,6 +55,7 @@ export default function Header({ onToggle, open }) {
       technicians: t("menu.technicians"),
       calls: t("servicecall.title"),
       supportAgents:t("menu.supportAgents"),
+      mycalls: t("usermenu.myCalls"),
       my: t("usermenu.my"),
       details: t("usermenu.myDetails"),
       changePassword: t("usermenu.changePassword"),
@@ -67,6 +68,7 @@ export default function Header({ onToggle, open }) {
   // build breadcrumb trail: always starts at Dashboard (home)
   const crumbs = useMemo(() => {
     const segments = pathname.split("/").filter(Boolean);
+    if (pathname=="/") return [];
     const trail = [{ to: "/", label: t("menu.dashboard") }];
     let acc = "";
     segments.forEach((seg) => {
@@ -115,7 +117,7 @@ export default function Header({ onToggle, open }) {
           {user.first_name+' '+user.last_name}
         </Dropdown.Toggle>
         <Dropdown.Menu>
-          <Dropdown.Item as={Link} to="/my/calls">{t("usermenu.myCalls")}</Dropdown.Item>
+          <Dropdown.Item as={Link} to="/mycalls">{t("usermenu.myCalls")}</Dropdown.Item>
           <Dropdown.Divider />
           <Dropdown.Item as={Link} to="/my/details">{t("usermenu.myDetails")}</Dropdown.Item>
           <Dropdown.Item as={Link} to="/my/changePassword">{t("usermenu.changePassword")}</Dropdown.Item>

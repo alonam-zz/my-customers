@@ -7,9 +7,11 @@ import { useConfirm } from "../components/ConfirmProvider.jsx";
 import { useNavigate } from "react-router-dom";
 import useApi from "../hooks/useApi.js";
 import { useAddLog } from "../utils/logs.js";
-import {PAGE_SIZE} from "../utils/constants.js"
+import {PAGE_SIZE,EMAIL_RE} from "../utils/constants.js"
 //for the dictionary
 import { useI18n } from "../i18n/I18nProvider";
+import { useAlert } from "../components/ConfirmProvider.jsx";
+
 
 
 function CustomersList({categorisList,...rest}) {
@@ -18,6 +20,7 @@ function CustomersList({categorisList,...rest}) {
   const [customers, setCustomers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [pageCount, setPageCount] = useState("");
+  const [areas, setAreas] = useState([]);
 
   // const [listColumns, setListColumns] = useState(rest.listColumns);
   // const [listHeaders, setListHaders] = useState(rest.listHeaders);
@@ -26,6 +29,16 @@ function CustomersList({categorisList,...rest}) {
   const navigate = useNavigate();
   const send = useApi();
   const addLog = useAddLog();
+
+  const alert = useAlert();
+
+  // load the grouped areas once for the customer form's region <Select>
+  useEffect(() => {
+    (async () => {
+      const { ok, data } = await send("/api/areas");
+      if (ok) setAreas(Array.isArray(data.items) ? data.items : []);
+    })();
+  }, []);
 
   // Fetch customers from server
   // useEffect(() => {
@@ -41,11 +54,11 @@ function CustomersList({categorisList,...rest}) {
 ];
 
   const listColumns = useMemo(() => [
-  {key:"name",label:t("customer.name"),width: 2,truncate:true},
-  {key:"first_name",label:t("customer.first_name"),width: 2,truncate:true},
-  {key:"last_name",label:t("customer.last_name"),width: 2,},
-  {key:"phone",label:t("customer.phone"),width: 2,},
-  {key:"email",label:t("customer.email"),width: 2,},
+  {key:"name",label:t("customer.name"),width: 2,truncate:true, filter: true},
+  {key:"first_name",label:t("customer.first_name"),width: 2,truncate:true, filter: true},
+  {key:"last_name",label:t("customer.last_name"),width: 2, filter: true},
+  {key:"phone",label:t("customer.phone"),width: 2, filter: true},
+  {key:"email",label:t("customer.email"),width: 2, filter: true},
 //  {
 //   key:"completed",
 //   label:t("task.status"),
@@ -61,17 +74,14 @@ function CustomersList({categorisList,...rest}) {
 ], [t,locale]); // This dependency ensures columns are recreated when language changes
 
 
-    const fetchCustomers = async (pageSize,page=1) => {
+    const fetchCustomers = async (pageSize,page=1, sortBy, sortDir, filter) => {
     try {
       setLoading(true);
 
-    const response = await fetch(`/api/customers?limit=${pageSize}&page=${page}`);
-
-      console.log(response)
-      const res = await response.json();
-      setCustomers(res.items);
-      setPageCount(res?.pagination.totalPages);
-      console.log(c)
+    const { ok, data } = await send(`/api/customers?limit=${pageSize}&page=${page}${sortBy ? `&sortBy=${sortBy}&sortDir=${sortDir}` : ""}${filter && Object.keys(filter).length ? `&filter=${encodeURIComponent(JSON.stringify(filter))}` : ""}`);
+      if (!ok) return;
+      setCustomers(data.items);
+      setPageCount(data?.pagination.totalPages);
       
     } catch (error) {
       //console.error('Error fetching tasks:', error);
@@ -106,6 +116,15 @@ function CustomersList({categorisList,...rest}) {
 
   // returns true on success so the form knows whether to close.
   const handleCustomerSubmit = async (data) => {
+    if (data.email.trim() && !EMAIL_RE.test(data.email.trim())) {
+      await alert({
+          title: t("common.errorTitle"),
+          message: t("messages.errEmail") ,
+          confirmText: t("common.ok"),
+          variant: "danger",
+        });
+      return;
+    }
     if (data.id) {
       const { ok, data: updated } = await send(`/api/customers/${data.id}`, { method: 'PUT', body: data });
       if (ok) {
@@ -141,7 +160,7 @@ function CustomersList({categorisList,...rest}) {
           onNew={() => onOpenCustomerListItem({})} onDeleteItem={(item)=>{onDeleteTaskListItem(item)}} onOpenItem={(item)=>onOpenCustomerListItem(item)} onClickItem={(item) => navigate(`/customers/${item.id}`)}
         />
        <Modal open={open} onClose={() => setOpenCustomerModal(false)} modalchildren>
-            <CustomerForm initialTask={openCustomerItem} 
+            <CustomerForm initialCustomer={openCustomerItem} areas={areas}
             onSubmitForm = {handleCustomerSubmit}
             // {
                 // (updated)=>{

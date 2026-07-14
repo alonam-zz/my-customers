@@ -1,7 +1,11 @@
 import { useState } from "react";
 import { useI18n } from "../i18n/I18nProvider";
 import { EMPLOYEE_ROLES } from "../utils/constants.js";
-
+import UserName from "./UserName.jsx";
+import Loader from "./Loader.jsx";
+import useApi from "../hooks/useApi.js";
+import useAuth from "../auth/AuthProvider.jsx";
+import { useAlert } from "./ConfirmProvider.jsx";
 /**
  * Props:
  *  - initialUser?: row from /api/employees
@@ -12,6 +16,11 @@ import { EMPLOYEE_ROLES } from "../utils/constants.js";
  */
 export default function UserForm({ initialUser = {}, onSubmitForm, onCloseForm ,disableEdit}) {
   const { t } = useI18n();
+  const send = useApi();
+  const alert = useAlert();
+  const { isManager } = useAuth(); // isManager === admin || manager
+  const [submiting, setSubmiting] = useState(false);
+  const [reactivating, setReactivating] = useState(false);
 
   const [form, setForm] = useState({
     id: initialUser.id ?? "",
@@ -39,13 +48,30 @@ export default function UserForm({ initialUser = {}, onSubmitForm, onCloseForm ,
       is_active: Number(form.is_active) ? 1 : 0,
     };
     if (!user.first_name) return; // minimal required
+    setSubmiting(true);
     const ok = await onSubmitForm?.(user);
+    setSubmiting(false);
     if (ok) onCloseForm?.(); // keep the form open if the request failed
   };
 
+  const handleReactivate = async () => {
+    if (!form.id) return;
+    setReactivating(true);
+    const { ok } = await send(`/api/employees/reactivate/${form.email}`, { method: "PUT" });
+    setReactivating(false);
+    if (ok) {
+      await alert({
+        title: t("user.reactivateSentTitle"),
+        message: t("user.reactivateSent"),
+        confirmText: t("common.ok"),
+      });
+    }
+  };
+
   return (
-    <form className="container p-3" onSubmit={handleSubmit}>
-      <fieldset disabled={disableEdit}>
+    <form className="container p-3 position-relative" onSubmit={handleSubmit}>
+      {(submiting || reactivating) && <Loader />}
+      <fieldset disabled={disableEdit || submiting || reactivating} >
       <div className="row g-3">
         <div className="col-12 col-md-6">
           <label className="form-label">{t("user.first_name")} *</label>
@@ -59,10 +85,15 @@ export default function UserForm({ initialUser = {}, onSubmitForm, onCloseForm ,
           <label className="form-label">{t("user.email")} *</label>
           <input type="email" className="form-control" name="email" value={form.email} onChange={handleChange} required disabled={disableEdit}/>
         </div>
-        <div className="col-12 col-md-6">
+        <UserName
+          value={form.username}
+          onChange={form.id?{}:handleChange} 
+          disabled={(form.id||(disableEdit))?true:false}
+        />
+        {/* <div className="col-12 col-md-6">
           <label className="form-label">{t("user.username")} *</label>
-          <input className="form-control" name="username" value={form.username} onChange={form.id?{}:handleChange} disabled={(form.id||(!disableEdit))?true:false} required/>
-        </div>
+          <input className="form-control" name="username" value={form.username}  required/>
+        </div> */}
         <div className="col-12 col-md-6">
           <label className="form-label">{t("user.phone")}</label>
           <input type="tel" className="form-control" name="phone" value={form.phone} onChange={handleChange} disabled={disableEdit}/>
@@ -83,9 +114,18 @@ export default function UserForm({ initialUser = {}, onSubmitForm, onCloseForm ,
       </div>
 
     {disableEdit===false && (
-      <div className="d-flex justify-content-end gap-2 mt-4">
-        <button type="button" className="btn btn-outline-secondary" onClick={onCloseForm}>{t("common.cancel")}</button>
-        <button type="submit" className="btn btn-primary">{t("common.save")}</button>
+      <div className="d-flex justify-content-between align-items-center gap-2 mt-4">
+        <div>
+          {isManager && form.id && (
+            <button type="button" className="btn btn-outline-warning" onClick={handleReactivate} disabled={reactivating}>
+              {t("user.reactivate")}
+            </button>
+          )}
+        </div>
+        <div className="d-flex gap-2">
+          <button type="button" className="btn btn-outline-secondary" onClick={onCloseForm}>{t("common.cancel")}</button>
+          <button type="submit" className="btn btn-primary">{t("common.save")}</button>
+        </div>
       </div>
       )
     }

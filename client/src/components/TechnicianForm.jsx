@@ -1,7 +1,10 @@
 import { useState } from "react";
 import { useI18n } from "../i18n/I18nProvider";
+import Select from "./Select.jsx";
+import UserName from "./UserName.jsx";
+import Loader from "./Loader.jsx";
+import { AVAILABILITY } from "../utils/constants.js";
 
-const AVAILABILITY = ["available", "busy", "away", "inactive"];
 
 /**
  * Props:
@@ -11,8 +14,9 @@ const AVAILABILITY = ["available", "busy", "away", "inactive"];
  *
  * NOTE: the DB column is spelled `availability_status` (per the technicians table).
  */
-export default function TechnicianForm({ initialTechnician = {}, onSubmitForm, onCloseForm }) {
+export default function TechnicianForm({ initialTechnician = {}, onSubmitForm, onCloseForm, disableEdit, areas = [] }) {
   const { t } = useI18n();
+  const [submiting, setSubmiting] = useState(false);
 
   const [form, setForm] = useState({
     id: initialTechnician.id ?? "",
@@ -20,6 +24,7 @@ export default function TechnicianForm({ initialTechnician = {}, onSubmitForm, o
     // employee contact fields
     first_name: initialTechnician.first_name ?? "",
     last_name: initialTechnician.last_name ?? "",
+    username: initialTechnician.username ?? "",
     email: initialTechnician.email ?? "",
     phone: initialTechnician.phone ?? "",
     // technician fields
@@ -45,14 +50,20 @@ export default function TechnicianForm({ initialTechnician = {}, onSubmitForm, o
       last_name: form.last_name.trim(),
       max_daily_visits: form.max_daily_visits === "" ? null : Number(form.max_daily_visits),
       is_external: form.is_external ? 1 : 0,
+      username: form.id?"":form.username.trim(),
     };
     if (!technician.first_name) return; // minimal required
+    if (!form.id && (!technician.username || !technician.email)) return; // minimal required for new  technician
+    setSubmiting(true);
     const ok = await onSubmitForm?.(technician);
+    setSubmiting(false);
     if (ok) onCloseForm?.(); // keep the form open if the request failed
   };
 
   return (
-    <form className="container p-3" onSubmit={handleSubmit}>
+    <form className="container p-3 position-relative" onSubmit={handleSubmit}>
+      {submiting && <Loader />}
+      <fieldset disabled={disableEdit || submiting} >
       <div className="row g-3">
         {/* ----- employee contact ----- */}
         <div className="col-12 col-md-6">
@@ -64,9 +75,14 @@ export default function TechnicianForm({ initialTechnician = {}, onSubmitForm, o
           <input className="form-control" name="last_name" value={form.last_name} onChange={handleChange} />
         </div>
         <div className="col-12 col-md-6">
-          <label className="form-label">{t("employee.email")}</label>
-          <input type="email" className="form-control" name="email" value={form.email} onChange={handleChange} />
+          <label className="form-label">{t("employee.email")} *</label>
+          <input type="email" className="form-control" name="email" value={form.email} onChange={handleChange} required/>
         </div>
+        <UserName
+          value={form.username}
+          onChange={form.id?{}:handleChange} 
+          disabled={(form.id||(disableEdit))?true:false}
+        />
         <div className="col-12 col-md-6">
           <label className="form-label">{t("employee.phone")}</label>
           <input type="tel" className="form-control" name="phone" value={form.phone} onChange={handleChange} />
@@ -77,21 +93,34 @@ export default function TechnicianForm({ initialTechnician = {}, onSubmitForm, o
         {/* ----- technician fields ----- */}
         <div className="col-12 col-md-6">
           <label className="form-label">{t("technician.region")}</label>
-          <input className="form-control" name="region" value={form.region} onChange={handleChange} />
+          <Select
+            name="region"
+            options={areas}
+            value={form.region}
+            onChange={handleChange}
+            placeholder={t("technician.selectRegion")}
+          />
         </div>
         <div className="col-12 col-md-6">
           <label className="form-label">{t("technician.specialization")}</label>
           <input className="form-control" name="specialization" value={form.specialization} onChange={handleChange} />
         </div>
-        <div className="col-12 col-md-6">
+        <div className="col-12 col-md-4">
           <label className="form-label">{t("employee.availability")}</label>
           <select className="form-select" name="availability_status" value={form.availability_status} onChange={handleChange}>
             {AVAILABILITY.map((v) => <option key={v} value={v}>{t(`avail.${v}`)}</option>)}
           </select>
         </div>
-        <div className="col-12 col-md-6">
+        <div className="col-12 col-md-4">
           <label className="form-label">{t("technician.max_daily_visits")}</label>
           <input type="number" min="0" className="form-control" name="max_daily_visits" value={form.max_daily_visits} onChange={handleChange} />
+        </div>
+        <div className="col-12 col-md-4">
+          <label className="form-label">{t("user.activity")}</label>
+          <select className="form-select" name="is_active" value={form.is_active} onChange={handleChange} disabled={disableEdit}>
+            <option value={1}>{t("user.active")}</option>
+            <option value={0}>{t("user.inactive")}</option>
+          </select>
         </div>
         <div className="col-12 col-md-6">
           <label className="form-label">{t("technician.vehicle_number")}</label>
@@ -109,10 +138,13 @@ export default function TechnicianForm({ initialTechnician = {}, onSubmitForm, o
         </div>
       </div>
 
+      {!disableEdit && (
       <div className="d-flex justify-content-end gap-2 mt-4">
         <button type="button" className="btn btn-outline-secondary" onClick={onCloseForm}>{t("common.cancel")}</button>
         <button type="submit" className="btn btn-primary">{t("common.save")}</button>
       </div>
+      )}
+      </fieldset>
     </form>
   );
 }

@@ -4,11 +4,11 @@ import customerProductsModel from "../models/customerProducts.model.js";
 
 // Get all customer products
 async function getAllCustomerProducts (req, res){
-    console.log("GET /api/customer-products called");
   try {
-    const { id } = req.params;    console.log(id)     
-    const rows = await customerProductsModel.getAllCustomerProductsById(id);
-    console.log(rows)
+    const { id } = req.params;
+    const sortBy = req.query.sortBy;
+    const sortDir = req.query.sortDir;
+    const rows = await customerProductsModel.getAllCustomerProductsById(id,sortBy,sortDir);
     res.json(rows);
   } catch (error) {
     console.error('Database error:', error);
@@ -19,7 +19,6 @@ async function getAllCustomerProducts (req, res){
 
 // post new customer product
 async function addCustomerProduct (req, res){
-    console.log("POST /api/customer-products called");
   try {
     const { customerId, productId} = req.body;
 

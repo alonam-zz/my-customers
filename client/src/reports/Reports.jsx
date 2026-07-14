@@ -8,7 +8,7 @@ import List from "../components/List.jsx";
 import Modal from "../components/Modal.jsx";
 import CallForm from "../components/CallForm.jsx";
 import useApi from "../hooks/useApi.js";
-import {CALL_TYPES,CALL_PRIORITIES,STATUS_BADGE,PRIORITY_BADGE,CALL_STATUSES,STATUS_BADGE_COLORS} from "../utils/constants.js"
+import {CALL_TYPES,CALL_PRIORITIES,STATUS_BADGE,PRIORITY_BADGE,CALL_STATUSES,STATUS_BADGE_COLORS,TYPE_BADGE_COLORS,CHART_COLORS} from "../utils/constants.js"
 import {
   Chart as ChartJS,
   ArcElement,
@@ -35,6 +35,12 @@ const TECHNICIAN_SORT = { key: "technician_name", dir: "asc" };
 const SUPPORT_AGENT_SORT = { key: "support_agent_name", dir: "asc" };
 const TYPE_SORT = { key: "type", dir: "asc" };
 const EXTENDED_CALL_SORT = { key: "id", dir: "asc" };
+
+// true if the filter has any active value (non-empty array or non-empty string).
+// Used to keep an extended-calls list visible when a filter is applied even though
+// it returned no rows; the list is only hidden when nothing is filtered AND it's empty.
+const hasActiveFilter = (filter) =>
+  Object.values(filter || {}).some((v) => (Array.isArray(v) ? v.length > 0 : v !== "" && v != null));
 
 // function StatTile({ label, value, variant = "secondary", icon }) {
 //   return (
@@ -74,6 +80,17 @@ export default function Reports() {
   const [supportAgentExtendedCallPageCount, setSupportAgentExtendedCallPageCount] = useState(10);
   const [typeExtendedCallPageCount, setTypeExtendedCallPageCount] = useState(10);
 
+  const [statusExtendedCallPageSize, setStatusExtendedCallPageSize] = useState(10);
+  const [technicianExtendedCallPageCSize, setTechnicianExtendedCallPageSize] = useState(10);
+  const [supportAgentExtendedCallPageSize, setSupportAgentExtendedCallPageSize] = useState(10);
+  const [typeExtendedCallPageSize, setTypeExtendedCallPageSize] = useState(10);
+
+  const [statusExtendedCallPage, setStatusExtendedCallPage] = useState(1);
+  const [technicianExtendedCallPage, setTechnicianExtendedCallPage] = useState(1);
+  const [supportAgentExtendedCallPage, setSupportAgentExtendedCallPage] = useState(1);
+  const [typeExtendedCallPage, setTypeExtendedCallPage] = useState(1);
+
+
   // remember the clicked row's value per list so pagination can re-fetch the right rows
   const [statusExtendedValue, setStatusExtendedValue] = useState(null);
   const [technicianExtendedValue, setTechnicianExtendedValue] = useState(null);
@@ -108,23 +125,30 @@ export default function Reports() {
   const [typeFilter, setTypeFilter] = useState(emptyFilter);
   const [selectedReport, setSelectedReport] = useState("status");
 
-//   const [highPriority, setHighPriority] = useState(MOCK_HIGH_PRIORITY);
-//   const [perUser, setPerUser] = useState(MOCK_PER_USER);
-//   const [performance, setPerformance] = useState(MOCK_PERFORMANCE);
-//   const [intervention, setIntervention] = useState(MOCK_INTERVENTION);
+  const [technicianChartColors, setTechnicianChartColors] = useState([]);
+  const [supportAgentChartColors, setSupportAgentChartColors] = useState([]);
 
 const root = getComputedStyle(document.documentElement);
-const chartColors = CALL_STATUSES.map((status)=>root.getPropertyValue(STATUS_BADGE_COLORS[status]).trim());
+const statusChartColors = CALL_STATUSES.map((status)=>root.getPropertyValue(STATUS_BADGE_COLORS[status]).trim());
+const typeChartColors = CALL_TYPES.map((type)=>root.getPropertyValue(TYPE_BADGE_COLORS[type]).trim());
 
-CALL_STATUSES.map((item,k)=>{ console.log(item,k); return {name:item,id:k}})
+useEffect(()=>{
+  if (!technicians.length) return;
+  setTechnicianChartColors(technicians.map((t,i)=>root.getPropertyValue(CHART_COLORS[i]).trim()))
+},[technicians]);
+
+useEffect(()=>{
+  if (!technicians.length) return;
+  setSupportAgentChartColors(supportAgents.map((s,i)=>root.getPropertyValue(CHART_COLORS[i]).trim()))
+},[supportAgents]);
 
 useEffect(() => {
     let cancelled = false;
     async function load() {
       try {
         setLoading(true);
-        const res = await fetch(`/api/reports/status`);
-        const data = await res.json();
+        const { ok, data } = await send(`/api/reports/status`);
+        if (!ok) return;
         setStatusReport(data['items']);
       } catch (e) {
         console.error("Error loading report:", e);
@@ -134,8 +158,8 @@ useEffect(() => {
     }
 
     async function loadTechnicians() {
-      const res = await fetch('/api/technicians?all=1');
-      const techs = await res.json(); console.log(techs['items'])
+      const { ok, data: techs } = await send('/api/technicians?all=1');
+      if (!ok) return;
       const toOption = (r) => ({
         id: r.id,
         name: [r.first_name, r.last_name].filter(Boolean).join(" "),
@@ -144,8 +168,8 @@ useEffect(() => {
     }
 
     async function loadSupportAgents() {
-      const res = await fetch('/api/supportAgents?all=1');
-      const agents = await res.json();
+      const { ok, data: agents } = await send('/api/supportAgents?all=1');
+      if (!ok) return;
       const toOption = (r) => ({
         id: r.id,
         name: [r.first_name, r.last_name].filter(Boolean).join(" "),
@@ -171,9 +195,9 @@ useEffect(() => {
               const found = statusReport.find((item)=>item.status===status);
               return found?found.total:0;
             }),
-            backgroundColor: chartColors,
+            backgroundColor: statusChartColors,
             borderColor: 
-              chartColors
+              statusChartColors
             ,
             borderWidth: 1,
           },
@@ -192,9 +216,9 @@ useEffect(() => {
         datasets: [
           {
             data: technicianReport.map((t)=>(t.total)),
-            backgroundColor: chartColors,
+            backgroundColor: technicianChartColors,
             borderColor: 
-              chartColors
+              technicianChartColors
             ,
             borderWidth: 1,
           },
@@ -214,9 +238,9 @@ useEffect(() => {
         datasets: [
           {
             data: supportAgentReport.map((t)=>(t.total)),
-            backgroundColor: chartColors,
+            backgroundColor: supportAgentChartColors,
             borderColor:
-              chartColors
+              supportAgentChartColors
             ,
             borderWidth: 1,
           },
@@ -236,9 +260,9 @@ useEffect(() => {
         datasets: [
           {
             data: typeReport.map((t)=>(t.total)),
-            backgroundColor: chartColors,
+            backgroundColor: typeChartColors,
             borderColor: 
-              chartColors
+              typeChartColors
             ,
             borderWidth: 1,
           },
@@ -251,7 +275,6 @@ useEffect(() => {
 
      useEffect(()=>
   {
-    console.log(technicianChartData);
   },
   [technicianChartData  ]);
   
@@ -296,8 +319,8 @@ useEffect(() => {
           break;
      }
      const qs = new URLSearchParams({ filter: JSON.stringify(filter) });
-     const res = await fetch(`/api/reports/${reportId}?${qs}`);
-     const data = await res.json();
+     const { ok, data } = await send(`/api/reports/${reportId}?${qs}`);
+     if (!ok) return;
      switch (reportId){
         case "status":
           setStatusReport(data['items']);
@@ -315,7 +338,7 @@ useEffect(() => {
   }
 
 
-  const showExtendedCalls= async (reportId,lineValue,limit = 20, page = 1) =>{
+  const showExtendedCalls= async (reportId,lineValue,limit = 20, page = 1, sortBy, sortDir, columnFilter) =>{
     let filter = [];
     switch (reportId){
         case "status":
@@ -331,28 +354,39 @@ useEffect(() => {
           filter = ({...typeFilter,['type']:lineValue})
           break;
     }
+    // merge the DataTable column filters on top of the report's own filter
+    filter = { ...filter, ...(columnFilter || {}) };
     const qs = new URLSearchParams({ filter: JSON.stringify(filter) });
-    const res = await fetch(`/api/serviceCalls?limit=${limit}&page=${page}&${qs}`);
-    const data = await res.json();
+    if (sortBy) { qs.set("sortBy", sortBy); qs.set("sortDir", sortDir); }
+    const { ok, data } = await send(`/api/serviceCalls?limit=${limit}&page=${page}&${qs}`);
+    if (!ok) return;
     switch (reportId){
         case "status":
           setStatusReportExtended(Array.isArray(data.items) ? data.items : []);
           setStatusExtendedCallPageCount(data?.pagination.totalPages);
+          setStatusExtendedCallPageSize(data?.pagination.limit);
+          setStatusExtendedCallPage(data?.pagination.page);
           setStatusExtendedValue(lineValue);
           break;
         case "technician":
           setTechnicianReportExtended(Array.isArray(data.items) ? data.items : []);
           setTechnicianExtendedCallPageCount(data?.pagination.totalPages);
+          setTechnicianExtendedCallPageSize(data?.pagination.limit);
+          setTechnicianExtendedCallPage(data?.pagination.page);
           setTechnicianExtendedValue(lineValue);
           break;
         case "supportAgent":
           setSupportAgentReportExtended(Array.isArray(data.items) ? data.items : []);
           setSupportAgentExtendedCallPageCount(data?.pagination.totalPages);
+          setSupportAgentExtendedCallPageSize(data?.pagination.limit);
+          setStatusExtendedCallPage(data?.pagination.page);
           setSupportAgentExtendedValue(lineValue);
           break;
         case "type":
           setTypeReportExtended(Array.isArray(data.items) ? data.items : []);
           setTypeExtendedCallPageCount(data?.pagination.totalPages);
+          setTypeExtendedCallPageSize(data?.pagination.limit);
+          setTypeExtendedCallPage(data?.pagination.page);
           setTypeExtendedValue(lineValue);
           break;
     }
@@ -383,8 +417,8 @@ useEffect(() => {
   const fetchCustomerProducts = async (customerId, limit = 20, page = 1) => {
     if (!customerId) { setCustomerProducts([]); return; }
     try {
-      const cpRes = await fetch(`/api/customers/${customerId}/products?limit=${limit}&page=${page}`);
-      const cp = await cpRes.json();
+      const { ok, data: cp } = await send(`/api/customers/${customerId}/products?limit=${limit}&page=${page}`);
+      if (!ok) return;
       setCustomerProducts(Array.isArray(cp.items) ? cp.items : []);
     } catch (e) {
       console.error("Error loading customer products:", e);
@@ -404,11 +438,32 @@ useEffect(() => {
     if (!data.id) return false;
     const { ok, data: updated } = await send(`/api/serviceCalls/${data.id}`, { method: 'PUT', body: data });
     if (ok) {
-      const patch = (prev) => prev.map((c) => (c.id === (updated?.id ?? data.id) ? (updated ?? data) : c));
-      setStatusReportExtended(patch);
-      setTechnicianReportExtended(patch);
-      setSupportAgentReportExtended(patch);
-      setTypeReportExtended(patch);
+      let extendedValue = "",extendedPageSize = "",extendedPage = "";
+      switch (selectedReport){
+        case "status":
+            extendedValue = statusExtendedValue;
+            extendedPageSize = statusExtendedCallPageSize;
+            extendedPage = statusExtendedCallPage;
+          // const pageSize = stat
+          break;
+        case "technician":
+            extendedValue = technicianExtendedValue;  
+            extendedPageSize= technicianExtendedCallPageSize;
+            extendedPage = technicianExtendedCallPage;
+          break;
+        case "supportAgent":
+          extendedValue = supportAgentExtendedValue;
+          extendedPageSize = supportAgentExtendedCallPageSize;
+          extendedPage = supportAgentExtendedCallPage;
+          break;
+        case "type":
+          extendedValue = typeExtendedValue;
+          extendedPageSize = typeExtendedCallPageSize;
+          extendedPage = typeExtendedCallPage;
+          break;
+    }
+
+        await showExtendedCalls(selectedReport, extendedValue, extendedPageSize, extendedPage);
     }
     return ok;
   }
@@ -628,26 +683,26 @@ useEffect(() => {
 
         <div className="col">
           <label className="form-label">{t("servicecall.technician")}</label>
-          {technicians.length > 0 && (<SearchSelect
+           <SearchSelect
           multiple={true}
             options={technicians}
             value={filter.assigned_technician_id}
             onChange={(ids) => handleSelectChange({target:{name:'assigned_technician_id',value:ids}},reportId)}
             placeholder={t("servicecall.selectTechnician")}
             searchPlaceholder={t("servicecall.selectTechnician")}
-          />)}
+          />
         </div>
 
         <div className="col">
           <label className="form-label">{t("servicecall.supportAgent")}</label>
-          {supportAgents.length > 0 && (<SearchSelect
+          <SearchSelect
           multiple={true}
             options={supportAgents}
             value={filter.assigned_support_agent_id}
             onChange={(ids) => handleSelectChange({target:{name:'assigned_support_agent_id',value:ids}},reportId)}
             placeholder={t("servicecall.selectSupportAgent")}
             searchPlaceholder={t("servicecall.selectSupportAgent")}
-          />)}
+          />
         </div>
 
         <div className="col">
@@ -724,7 +779,7 @@ useEffect(() => {
               />
             </div>
             </div>
-            <div className="col flex-grow-1">
+            <div className="col-4 flex-grow-1">
             <div className=" bordered-card h-100 p-4">
               <Doughnut data={statusChartData} options={doughnutChartoptions} />
             </div>
@@ -732,12 +787,12 @@ useEffect(() => {
           </div>
           <div className="row  p-1 mt-4">
             <div className="col col-md-12">
-              {statusReportExtended.length!=0 && (
+              {(statusExtendedValue !== null || hasActiveFilter(statusFilter))&& (
                 <div className=" bordered-card p-4">
                   <List elements={statusReportExtended} listColumns={listColumnsServiceCalls}
                     allowDelete={false} initialSort={EXTENDED_CALL_SORT}
                     showPagination={true} pageCount={statusExtendedCallPageCount}
-                    updateDataByPage={(pageSize, page) => showExtendedCalls('status', statusExtendedValue, pageSize, page)}
+                    updateDataByPage={(pageSize, page, sortBy, sortDir, filter) => showExtendedCalls('status', statusExtendedValue, pageSize, page, sortBy, sortDir, filter)}
                     onOpenItem={(item) => onOpenCallListItem(item)}
                   />
                 </div>
@@ -763,7 +818,7 @@ useEffect(() => {
               />
             </div>
             </div>
-            <div className="col flex-grow-1">
+            <div className="col-4 flex-grow-1">
             <div className=" bordered-card h-100 p-4">
               {technicianChartData!={} &&(<Doughnut data={technicianChartData} options={doughnutChartoptions} />)}
             </div>
@@ -771,12 +826,12 @@ useEffect(() => {
           </div>
           <div className="row p-1 mt-4">
             <div className="col col-md-12">
-              {technicianReportExtended.length!=0 && (
+              {(technicianExtendedValue !== null || hasActiveFilter(technicianFilter)) && (
                 <div className=" bordered-card p-4 ">
                   <List elements={technicianReportExtended} listColumns={listColumnsServiceCalls}
                     allowDelete={false} initialSort={EXTENDED_CALL_SORT}
                     showPagination={true} pageCount={technicianExtendedCallPageCount}
-                    updateDataByPage={(pageSize, page) => showExtendedCalls('technician', technicianExtendedValue, pageSize, page)}
+                    updateDataByPage={(pageSize, page, sortBy, sortDir, filter) => showExtendedCalls('technician', technicianExtendedValue, pageSize, page, sortBy, sortDir, filter)}
                     onOpenItem={(item) => onOpenCallListItem(item)}
                   />
                 </div>
@@ -803,7 +858,7 @@ useEffect(() => {
               />
             </div>
             </div>
-            <div className="col flex-grow-1">
+            <div className="col-4 flex-grow-1">
             <div className=" bordered-card h-100 p-4">
               {supportAgentChartData!={} &&(<Doughnut data={supportAgentChartData} options={doughnutChartoptions} />)}
             </div>
@@ -811,12 +866,12 @@ useEffect(() => {
           </div>
           <div className="row p-1 mt-4">
             <div className="col col-md-12">
-              {supportAgentReportExtended.length!=0 && (
+              {(supportAgentExtendedValue !== null || hasActiveFilter(supportAgentFilter)) && (
                 <div className=" bordered-card p-4 ">
                   <List elements={supportAgentReportExtended} listColumns={listColumnsServiceCalls}
                     allowDelete={false} initialSort={EXTENDED_CALL_SORT}
                     showPagination={true} pageCount={supportAgentExtendedCallPageCount}
-                    updateDataByPage={(pageSize, page) => showExtendedCalls('supportAgent', supportAgentExtendedValue, pageSize, page)}
+                    updateDataByPage={(pageSize, page, sortBy, sortDir, filter) => showExtendedCalls('supportAgent', supportAgentExtendedValue, pageSize, page, sortBy, sortDir, filter)}
                     onOpenItem={(item) => onOpenCallListItem(item)}
                   />
                 </div>
@@ -842,7 +897,7 @@ useEffect(() => {
               />
             </div>
             </div>
-            <div className="col flex-grow-1">
+            <div className="col-4 flex-grow-1">
             <div className=" bordered-card h-100 p-4">
               {typeChartData!={} &&(<Doughnut data={typeChartData} options={doughnutChartoptions} />)}
             </div>
@@ -850,12 +905,12 @@ useEffect(() => {
           </div>
           <div className="row p-1 mt-4">
             <div className="col col-md-12">
-              {typeReportExtended.length!=0 && (
+              {(typeExtendedValue !== null || hasActiveFilter(typeFilter)) && (
                 <div className=" bordered-card p-4">
                   <List elements={typeReportExtended} listColumns={listColumnsServiceCalls}
                     allowDelete={false} initialSort={EXTENDED_CALL_SORT}
                     showPagination={true} pageCount={typeExtendedCallPageCount}
-                    updateDataByPage={(pageSize, page) => showExtendedCalls('type', typeExtendedValue, pageSize, page)}
+                    updateDataByPage={(pageSize, page, sortBy, sortDir, filter) => showExtendedCalls('type', typeExtendedValue, pageSize, page, sortBy, sortDir, filter)}
                     onOpenItem={(item) => onOpenCallListItem(item)}
                   />
                 </div>

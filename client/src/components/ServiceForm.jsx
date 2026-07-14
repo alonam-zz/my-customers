@@ -9,7 +9,7 @@ import { useI18n } from "../i18n/I18nProvider";
  *  - onSubmitForm: (service) => void
  *  - onCloseForm: () => void
  */
-export default function ServiceForm({ initialService = {}, products = [], onSubmitForm, onCloseForm }) {
+export default function ServiceForm({ initialService = {}, products = [], onSubmitForm, onCloseForm, disableEdit }) {
   const { t } = useI18n();
 
   const [form, setForm] = useState({
@@ -41,6 +41,7 @@ export default function ServiceForm({ initialService = {}, products = [], onSubm
 
   return (
     <form className="container p-3" onSubmit={handleSubmit}>
+      <fieldset disabled={disableEdit}>
       <div className="row g-3">
         <div className="col-12">
           <label className="form-label">{t("services.product")}</label>
@@ -70,6 +71,7 @@ export default function ServiceForm({ initialService = {}, products = [], onSubm
         </div>
       </div>
 
+      {!disableEdit && (
       <div className="d-flex justify-content-end gap-2 mt-4">
         <button type="button" className="btn btn-outline-secondary" onClick={onCloseForm}>{t("common.cancel")}</button>
         <button type="reset" className="btn btn-secondary" onClick={() =>
@@ -77,6 +79,8 @@ export default function ServiceForm({ initialService = {}, products = [], onSubm
         }>{t("common.reset")}</button>
         <button type="submit" className="btn btn-primary">{t("common.save")}</button>
       </div>
+      )}
+      </fieldset>
     </form>
   );
 }

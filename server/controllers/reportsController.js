@@ -4,10 +4,9 @@ import reportsModel from "../models/reports.model.js";
 
 // Get all service calls
 async function getReportById(req, res){
-    console.log("GET /api/service reports called");
   try {
     const { id } = req.params;
-    const filter = req.query.filter?JSON.parse(req.query.filter): []; console.log("---",filter);
+    const filter = req.query.filter?JSON.parse(req.query.filter): [];
     const page = Number(req.query.page) || 1;
     const limit = Number(req.query.limit) || 20;
     const offset = (page - 1) * limit;

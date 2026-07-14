@@ -21,6 +21,9 @@ import { useAddLog } from "../utils/logs.js";
 
 
 
+// page size for the call-lines list
+const CALL_LINES_LIMIT = 20;
+
 export default function CallPage({ customerId,callId }) {
   const { t, locale } = useI18n();
   const navigate = useNavigate();
@@ -34,6 +37,7 @@ export default function CallPage({ customerId,callId }) {
 
   const [callLines, setCallLines] = useState([]);
   const [callLinesPageCount, setCallLinesPageCount] = useState("");
+  const [callLinesLimit, setCallLinesLimit] = useState(CALL_LINES_LIMIT);
   const [customerProducts, setCustomerProducts] = useState([]);
   const [productsPageCount, setProductsPageCount] = useState("");
   const [allProducts, setAllProducts] = useState([]);
@@ -53,15 +57,15 @@ export default function CallPage({ customerId,callId }) {
     async function load(pageSize,page=1) {
       try {
         setLoading(true);
-        const res = await fetch(`/api/serviceCalls/${callId}`);
-        const data = await res.json();
+        const { ok, data } = await send(`/api/serviceCalls/${callId}`);
+        if (!ok) return;
 
         // setCustomerId(customerId);
         const [cnRes,cpRes,techRes,agentsRes] = await Promise.all([
             fetch(`/api/customers/${customerId}/name`),
             fetch(`/api/customers/${customerId}/products?all=1`),
-            fetch(`/api/technicians?all=1`),
-            fetch(`/api/supportAgents?all=1`),
+            (user.role!="technician")?fetch(`/api/technicians?all=1`):fetch(`/api/technicians/${data?.assigned_technician_id}`),
+            (user.role!="technician")?fetch(`/api/supportAgents?all=1:`):fetch(`/api/supportAgents/${data?.assigned_support_agent_id}`),
         ]);
 
         const cn = await cnRes.json();
@@ -69,14 +73,15 @@ export default function CallPage({ customerId,callId }) {
         const techs = await techRes.json();
         const agents = await agentsRes.json();
 
+
         const toOption = (r) => ({
             id: r.id,
             name: [r.first_name, r.last_name].filter(Boolean).join(" "),
         });
         setCustomerName(cn[0].name);
         setCustomerProducts(Array.isArray(cp.items) ? cp.items : []);
-        setTechnicians(Array.isArray(techs.items) ? techs.items.map(toOption) : []);
-        setSupportAgents(Array.isArray(agents.items) ? agents.items.map(toOption) : []);
+        setTechnicians((Array.isArray(techs.items) ? techs.items:[techs]).map(toOption));
+        setSupportAgents((Array.isArray(agents.items) ? agents.items:[agents]).map(toOption));
 
 
         if (!cancelled) setCall(data);
@@ -98,12 +103,13 @@ export default function CallPage({ customerId,callId }) {
   }, [callId,customerId,call,customerName,setLabel]);
 
   // ----- load this customer's calls (GET — server side added later) -----
-  const fetchCallLines = async (limit = 20, page = 1) => {
+  const fetchCallLines = async (limit = CALL_LINES_LIMIT, page = 1, sortBy, sortDir) => {
     try {
-      const res = await fetch(`/api/serviceCallLines/${callId}?limit=${limit}&page=${page}`);
-      const data = await res.json();
-      setCallLines(Array.isArray(data.items) ? data.items : []); console.log(data);
+      const { ok, data } = await send(`/api/serviceCallLines/${callId}?limit=${limit}&page=${page}${sortBy ? `&sortBy=${sortBy}&sortDir=${sortDir}` : ""}`);
+      if (!ok) return;
+      setCallLines(Array.isArray(data.items) ? data.items : []);
       setCallLinesPageCount(data?.pagination.totalPages);
+      setCallLinesLimit(data?.pagination?.limit ?? CALL_LINES_LIMIT);
     } catch (e) {
       console.error("Error loading calls:", e);
       setCallLines([]);
@@ -112,7 +118,7 @@ export default function CallPage({ customerId,callId }) {
 
 
   const callSelectedFieldsChange = async(field,value,valueName = "") =>{
-    let desc = "";  console.log(field);
+    let desc = "";
     switch (field){
         case "status":
             desc = t("callLine.statusChanged")+t(`callStatus.${value}`);
@@ -152,22 +158,42 @@ export default function CallPage({ customerId,callId }) {
         employee_id:user.id
     }
     await addCallLine(data);
+    await handleCallSubmit(call,true);
   }
 
   const addCallLine = async (newLine)=>{
 
     const { ok, data: created } = await send(`/api/serviceCallLines/${callId}`, { method: 'POST', body: newLine });
     setNewCallLineDescription("");
-    setCallLines((prev)=>[...prev,created].slice(0,limit))
+    // newest first (the list sorts by created_at desc); cap to one page
+    if (ok){
+      fetchCallLines(callLinesLimit)
+    }
+
   }
+
+  // technician marks the call as finished -> status "technician_completed",
+  // then logs a call line describing the change (same shape as callSelectedFieldsChange)
+  const finishByTechnician = async () => {
+    const { ok } = await send(`/api/serviceCalls/${callId}/updateFinishByTechnician`, { method: 'PUT' });
+    if (!ok) return;
+    const value = "technician_completed";
+    setCall((c) => ({ ...c, status: value }));
+    const data = {
+      description: t("callLine.statusChanged") + t(`callStatus.${value}`),
+      status: value,
+      employee_id: user.id,
+    };
+    await addCallLine(data);
+  };
 
   // ----- load technicians + support agents for the CallForm dropdowns -----
   // mapped to { id, name } since SearchSelect expects a name field.
   const fetchCallRefs = async () => {
     try {
       const [tRes, saRes] = await Promise.all([
-        fetch(`/api/technicians?all=1`),
-        fetch(`/api/supportAgents?all=1`),
+        (user.role!="technician")?fetch(`/api/technicians?all=1`):fetch(`/api/technicians/${data?.assigned_technician_id}`),
+        (user.role!="technician")?fetch(`/api/supportAgents?all=1:`):fetch(`/api/supportAgents/${data?.assigned_support_agent_id}`),
       ]);
       const techs = await tRes.json();
       const agents = await saRes.json();
@@ -175,8 +201,8 @@ export default function CallPage({ customerId,callId }) {
         id: r.id,
         name: [r.first_name, r.last_name].filter(Boolean).join(" "),
       });
-      setTechnicians(Array.isArray(techs.items) ? techs.items.map(toOption) : []);
-      setSupportAgents(Array.isArray(agents.items) ? agents.items.map(toOption) : []);
+      setTechnicians(Array.isArray(techs.items) ? techs.items.map(toOption) : [techs]);
+      setSupportAgents(Array.isArray(agents.items) ? agents.items.map(toOption) : [agents]);
     } catch (e) {
       console.error("Error loading technicians/support agents:", e);
     }
@@ -191,12 +217,12 @@ export default function CallPage({ customerId,callId }) {
   }
 
 
-  const handleCallSubmit = async (data) => {
+  const handleCallSubmit = async (data,showToast = true) => {
     if (data.id) {
       const { ok, data: updated } = await send(`/api/serviceCalls/${data.id}`, { method: 'PUT', body: data });
       if (ok) {
         setCall(updated ?? data);
-        toast.success(t("servicecall.updateSuccess"));
+        if (showToast) toast.success(t("servicecall.updateSuccess"));
       }
       return ok;
     }
@@ -264,6 +290,7 @@ export default function CallPage({ customerId,callId }) {
       {
         key: "created_at", label: t("callLine.dateTime"), width: 2,
         render: (r) => formatDateTime(r.created_at),
+        type:"date"
       },
       { key: "description", label: t("callLine.description"), truncate: 1, width:4 },
       { key: "employee_name", label: t("callLine.employeeName"), width: 3 },
@@ -281,17 +308,27 @@ export default function CallPage({ customerId,callId }) {
   return (
     <div className="container-fluid">
       {/* <h1 className="mb-3">{customer?.name || t("customer.title")}</h1> */}
-    <div class ="row g-3">
+    <div className ="row g-3">
      <CallForm initialCall={call} customerProducts={customerProducts}
               twoColsForm = {true}
               onSubmitForm = {handleCallSubmit}
               onChangeSelectedFields = {callSelectedFieldsChange}
-              supportAgents = {supportAgents}
-              technicians = {technicians}
+              disabled = {user?.role === "technician" || call?.status === "closed"}
               onCloseForm = {()=>setOpenCallModal(false)}/>
     {
-        call.status!="closed"&&(
-    <div class="row p-4">
+        user?.role === "technician" && call.status !== "closed" && call.status !== "technician_completed" && (
+        <div className="row px-4 pt-3">
+            <div className="col-12">
+                <button type="button" className="btn btn-success" onClick={finishByTechnician}>
+                    {t("servicecall.finishByTechnician")}
+                </button>
+            </div>
+        </div>
+        )
+    }
+    {
+        call.status!="closed" && (
+    <div className="row p-4">
         <div className="col-6 bordered-card p-4">
             <label className="form-label">{t("callLine.Update")}</label>
             <textarea

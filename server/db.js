@@ -3,13 +3,11 @@ import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
-// // Get the directory name of the current module
-// const __filename = fileURLToPath(import.meta.url);
-// const __dirname = path.dirname(__filename);
-
-// // Load .env from the parent directory (project root)
-// dotenv.config({ path: path.join(__dirname, '..', '.env') });
-dotenv.config({ path:'./.env' });
+// Resolve .env relative to this file (project root, one level up from server/),
+// not the current working directory — so scripts run from anywhere still load it.
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+dotenv.config({ path: path.join(__dirname, '..', '.env') });
 
 const pool = mysql.createPool({
   host: process.env.DB_HOST,

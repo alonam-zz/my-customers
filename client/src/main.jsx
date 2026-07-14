@@ -6,7 +6,8 @@ import { BrowserRouter, Routes, Route, useParams, useNavigate, Navigate } from '
 import { Toaster } from 'react-hot-toast'
 
 import AppProviders from './components/AppProvider.jsx'
-import { AuthProvider } from "./auth/AuthProvider";
+import { AuthProvider, PAGE } from "./auth/AuthProvider";
+import useAuth from "./auth/AuthProvider";
 import Layout from './components/Layout.jsx'
 import Dashboard from './pages/Dashboard.jsx'
 import CustomersList from './pages/CustomersList.jsx'
@@ -19,24 +20,34 @@ import TechniciansList from './pages/TechniciansList.jsx'
 import SupportAgentsList from './pages/SupportAgentsList.jsx'
 import LoginForm from './pages/login.jsx'
 import ChangePasswordForm from './pages/ChangePassword.jsx'
+import Activate from './pages/Activate.jsx'
 import Reports from './reports/Reports.jsx'
 import Logs from './pages/Logs.jsx'
+import MyCalls from './pages/MyCalls.jsx'
+import MyDetails from './pages/MyDetails.jsx'
 
-import useAuth  from "./auth/AuthProvider";
+
 import  ProtectedRoute  from "./auth/ProtectedRoute";
 
 import { library } from '@fortawesome/fontawesome-svg-core';
 import {
   faPlus, faEdit, faTrash,faCheck,
   faXmark, faPaperPlane, faArrowsRotate, faUserGear, faFloppyDisk, faUser,
-  faFolderOpen, faClock,faChartColumn,faSearch
+  faFolderOpen, faClock,faChartColumn,faSearch,faCircleExclamation
 } from '@fortawesome/free-solid-svg-icons';
 
 library.add(
   faPlus, faEdit, faTrash,faCheck,
   faXmark, faPaperPlane, faArrowsRotate, faUserGear, faFloppyDisk, faUser,
-  faFolderOpen, faClock,faChartColumn,faSearch
+  faFolderOpen, faClock,faChartColumn,faSearch,faCircleExclamation
 );
+
+/* ---- per-page access guard: redirect to "/" if the user's role can't see this page ---- */
+function RequirePage({ page, children }) {
+  const { allowedPages } = useAuth();
+  if (!allowedPages.includes(page)) return <Navigate to="/" replace />;
+  return children;
+}
 
 /* ---- route wrappers: read URL params and pass them as props ---- */
 function CustomerPageRoute({initialTab = null}) {
@@ -65,24 +76,27 @@ createRoot(document.getElementById('root')).render(
         <Routes>
           <Route element={<ProtectedRoute />}>
             <Route element={<Layout />}>           
-              <Route path="/" element={<Dashboard />} />         
-              <Route path="/my/changePassword" element={<ChangePasswordForm />} />
-              <Route path="/customers" element={<CustomersList />} />
-              <Route path="/customers/:id" element={<CustomerPageRoute />} />
-              <Route path="customers/:customerId/calls/:id" element={<CallPageRoute />} />
-              <Route path="customers/:id/calls" element={<CustomerPageRoute initialTab={"calls"}/>} />
-              <Route path="/products" element={<ProductsList />} />
-              <Route path="/services" element={<ServicesList />} />
-              <Route path="/users" element={<UsersList />} />
-              <Route path="/technicians" element={<TechniciansList />} />
-              <Route path="/supportAgents" element={<SupportAgentsList />} />
-              <Route path="/reports/" element={<Reports />} />
-              <Route path="/logs/" element={<Logs />} />
+              <Route path="/" element={<Dashboard />} />
+              <Route path="/my/changePassword" element={<RequirePage page={PAGE.changePassword}><ChangePasswordForm /></RequirePage>} />
+              <Route path="/my/details" element={<MyDetails />} />
+              <Route path="/customers" element={<RequirePage page={PAGE.customers}><CustomersList /></RequirePage>} />
+              <Route path="/customers/:id" element={<RequirePage page={PAGE.customer}><CustomerPageRoute /></RequirePage>} />
+              <Route path="customers/:customerId/calls/:id" element={<RequirePage page={PAGE.call}><CallPageRoute /></RequirePage>} />
+              <Route path="customers/:id/calls" element={<RequirePage page={PAGE.customer}><CustomerPageRoute initialTab={"calls"}/></RequirePage>} />
+              <Route path="/products" element={<RequirePage page={PAGE.products}><ProductsList /></RequirePage>} />
+              <Route path="/services" element={<RequirePage page={PAGE.services}><ServicesList /></RequirePage>} />
+              <Route path="/users" element={<RequirePage page={PAGE.users}><UsersList /></RequirePage>} />
+              <Route path="/technicians" element={<RequirePage page={PAGE.technicians}><TechniciansList /></RequirePage>} />
+              <Route path="/supportAgents" element={<RequirePage page={PAGE.supportAgents}><SupportAgentsList /></RequirePage>} />
+              <Route path="/reports/" element={<RequirePage page={PAGE.reports}><Reports /></RequirePage>} />
+              <Route path="/logs/" element={<RequirePage page={PAGE.logs}><Logs /></RequirePage>} />
+              <Route path="/mycalls" element={<RequirePage page={PAGE.myCalls}><MyCalls /></RequirePage>} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Route>
 
           </Route>
           <Route path="/login" element={<LoginForm />} />
+          <Route path="/activate/:token" element={<Activate />} />
         </Routes>
       </BrowserRouter>
       </AuthProvider> 

@@ -7,7 +7,7 @@ import { useI18n } from "../i18n/I18nProvider";
  *  - onSubmitForm: (product) => void
  *  - onCloseForm: () => void
  */
-export default function ProductForm({ initialProduct = {}, onSubmitForm, onCloseForm }) {
+export default function ProductForm({ initialProduct = {}, onSubmitForm, onCloseForm ,disableEdit}) {
   const { t } = useI18n();
 
   const [form, setForm] = useState({
@@ -39,6 +39,7 @@ export default function ProductForm({ initialProduct = {}, onSubmitForm, onClose
 
   return (
     <form className="container p-3" onSubmit={handleSubmit}>
+      <fieldset disabled={disableEdit}>
       <div className="row g-3">
         <div className="col-12">
           <label className="form-label">{t("products.name")} *</label>
@@ -60,7 +61,7 @@ export default function ProductForm({ initialProduct = {}, onSubmitForm, onClose
           <textarea className="form-control" rows={3} name="description" value={form.description} onChange={handleChange} />
         </div>
       </div>
-
+      {!disableEdit && (
       <div className="d-flex justify-content-end gap-2 mt-4">
         <button type="button" className="btn btn-outline-secondary" onClick={onCloseForm}>{t("common.cancel")}</button>
         <button type="reset" className="btn btn-secondary" onClick={() =>
@@ -68,6 +69,8 @@ export default function ProductForm({ initialProduct = {}, onSubmitForm, onClose
         }>{t("common.reset")}</button>
         <button type="submit" className="btn btn-primary">{t("common.save")}</button>
       </div>
+      )}
+      </fieldset>
     </form>
   );
 }

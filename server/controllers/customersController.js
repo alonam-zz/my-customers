@@ -1,17 +1,20 @@
 import customerModel from "../models/customers.model.js";
 import productsModel from "../models/products.model.js";
+import serviceCallsModel from "../models/serviceCalls.model.js";
 
 //controller get request from the route and call the model, and return response to the route.
 
 // Get all customers
 
-async function getAllCustomers(req,res){         
-    console.log("GET /api/customers called");
+async function getAllCustomers(req,res){
   try {
     const page = Number(req.query.page) || 1;
     const limit = Number(req.query.limit) || 20;
     const offset = (page - 1) * limit;
-    const {total,items} = await customerModel.getAll(limit,offset);
+    const sortBy = req.query.sortBy;
+    const sortDir = req.query.sortDir;
+    const filter = req.query.filter ? JSON.parse(req.query.filter) : {};
+    const {total,items} = await customerModel.getAll(sortBy,sortDir,limit,offset,filter);
     const totalPages = Math.ceil(total/limit)
     res.json({items:items,pagination:{total:total,limit:limit,page:page,totalPages:totalPages}});
   } catch (error) {
@@ -22,10 +25,17 @@ async function getAllCustomers(req,res){
 
 // Get  customer by id
 async function getCustomer(req, res){
-    console.log("GET /api/customers/id called");
   try {
     const { id } = req.params;
     const [rows] = await customerModel.getById(id);
+
+    //if user is a technician - allow fetching only if he is has open call  for that customer
+    const call = rows[0]??null;
+    if (call && (req.user=="technician" )) {
+      if (await !serviceCallsModel.customerCallsHasTechnician(id,req.user.id)) return res.status(403).json({ message: "Forbidden" });
+    }
+    
+
     res.json(rows);
   } catch (error) {
     console.error('Database error:', error);
@@ -35,7 +45,6 @@ async function getCustomer(req, res){
 
 // Get  customer name by id
 async function getCustomerName(req, res){
-    console.log("GET /api/customers/id called");
   try {
     const { id } = req.params;
     const [rows] = await customerModel.getNameById(id);
@@ -66,7 +75,6 @@ async function createCustomer (req, res){
 async function updateCustomer(req, res){
   try {
     const { id } = req.params;
-    console.log(req.body);
     await customerModel.updateById(id,req.body)
     res.json({ id, ...req.body });
   } catch (error) {
@@ -79,7 +87,7 @@ async function updateCustomer(req, res){
 async function deleteCustomer(req, res){
   try {
     const { id } = req.params;
-    await customerModel.deleteById();
+    await customerModel.deleteById(id);
     res.json({ success: true });
   } catch (error) {
     console.error('Database error:', error);
@@ -90,14 +98,15 @@ async function deleteCustomer(req, res){
 
 // Get all customer products
 async function getAllCustomerProducts (req, res){
-    console.log("GET /api/customer products called");
   try {
     const { id } = req.params;
     const all = req.query.all;
     const page = Number(req.query.page) || 1;
     const limit = all ? Number.MAX_SAFE_INTEGER : Number(req.query.limit) || 20;
     const offset = all ? 0 : (page - 1) * limit;
-    const {total,items} = await customerModel.getAllCustomerProductsById(id,limit,offset);
+    const sortBy = req.query.sortBy;
+    const sortDir = req.query.sortDir;
+    const {total,items} = await customerModel.getAllCustomerProductsById(id,sortBy,sortDir,limit,offset);
     const totalPages = Math.ceil(total/limit)
     res.json({items:items,pagination:{total:total,limit:limit,page:page,totalPages:totalPages}});
   } catch (error) {
@@ -109,7 +118,6 @@ async function getAllCustomerProducts (req, res){
 
 // post new customer product
 async function addCustomerProduct (req, res){
-    console.log("POST /api/customer add product");
   try {
     const { id } = req.params;  
     const { productId} = req.body;

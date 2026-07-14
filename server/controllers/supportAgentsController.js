@@ -12,13 +12,15 @@ function invalidLevel(level){
 
 // Get all support agents
 async function getAllSupportAgents(req, res){
-    console.log("GET /api/supportAgents called");
   try {
     const all = req.query.all;
     const page = Number(req.query.page) || 1;
     const limit = all ? Number.MAX_SAFE_INTEGER : Number(req.query.limit) || 20;
     const offset = all ? 0 : (page - 1) * limit;
-    const {total,items} = await supportAgentsModel.getAll(limit,offset);
+    const sortBy = req.query.sortBy;
+    const sortDir = req.query.sortDir;
+    const filter = req.query.filter ? JSON.parse(req.query.filter) : {};
+    const {total,items} = await supportAgentsModel.getAll(sortBy,sortDir,limit,offset,filter);
     const totalPages = Math.ceil(total/limit)
     res.json({items:items,pagination:{total:total,limit:limit,page:page,totalPages:totalPages}});
   } catch (error) {
@@ -32,6 +34,17 @@ async function getSupportAgent(req, res){
   try {
     const { id } = req.params;
     const [rows] = await supportAgentsModel.getById(id);
+    res.json(rows[0] ?? null);
+  } catch (error) {
+    console.error('Database error:', error);
+    res.status(500).json({ error: error });
+  }
+}
+
+// Get the logged-in user's own support-agent record (for the /my/details page)
+async function getMySupportAgent(req, res){
+  try {
+    const [rows] = await supportAgentsModel.getByEmployeeId(req.user.id);
     res.json(rows[0] ?? null);
   } catch (error) {
     console.error('Database error:', error);
@@ -65,6 +78,15 @@ async function createSupportAgent(req, res){
 async function updateSupportAgent(req, res){
   try {
     const { id } = req.params;
+    // technicians / support may only edit their OWN record — verify ownership
+    // against the DB (never trust employee_id from the request body).
+    if (req.user.role === "technician" || req.user.role === "support") {
+      const [ownRows] = await supportAgentsModel.getById(id);
+      const record = ownRows[0] ?? null;
+      if (!record || Number(record.employee_id) !== Number(req.user.id)) {
+        return res.status(403).json({ message: "Forbidden" });
+      }
+    }
     if (invalidLevel(req.body.level)) {
       return res.status(400).json({ error: `Invalid level. Allowed: ${ALLOWED_LEVELS.join(', ')}` });
     }
@@ -96,6 +118,7 @@ async function deleteSupportAgent(req, res){
 export default {
     getAllSupportAgents,
     getSupportAgent,
+    getMySupportAgent,
     createSupportAgent,
     updateSupportAgent,
     deleteSupportAgent,

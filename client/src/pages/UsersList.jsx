@@ -4,6 +4,7 @@ import List from "../components/List.jsx";
 import Modal from "../components/Modal.jsx";
 import UserForm from "../components/UserForm.jsx";
 import useApi from "../hooks/useApi.js";
+import { PAGE_SIZE, EMPLOYEE_ROLES } from "../utils/constants.js";
 import { useAddLog } from "../utils/logs.js";
 import { useI18n } from "../i18n/I18nProvider";
 import useAuth from "../auth/AuthProvider.jsx";
@@ -14,24 +15,21 @@ export default function UsersList() {
   const addLog = useAddLog();
   const [items, setItems] = useState([]);
   const [pageCount, setPageCount] = useState("");
+  const [pageLimit, setPageLimit] = useState(PAGE_SIZE);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
   const [editItem, setEditItem] = useState({});
-  const [disableEdit, setDisableEdit] = useState(true);
-  const {user,isManager} = useAuth();
+  const {user,authDisableEdit} = useAuth();
 
-  useEffect(()=>{
-        if (isManager()) setDisableEdit(false);
-      },
-  [])
 
-  const fetchUsers = async (limit = 20, page = 1) => {
+  const fetchUsers = async (limit = 20, page = 1, sortBy, sortDir, filter) => {
     try {
       setLoading(true);
-      const res = await fetch(`/api/employees?limit=${limit}&page=${page}`);
-      const data = await res.json();
+      const { ok, data } = await send(`/api/employees?limit=${limit}&page=${page}${sortBy ? `&sortBy=${sortBy}&sortDir=${sortDir}` : ""}${filter && Object.keys(filter).length ? `&filter=${encodeURIComponent(JSON.stringify(filter))}` : ""}`);
+      if (!ok) return;
       setItems(Array.isArray(data.items) ? data.items : []);
       setPageCount(data?.pagination.totalPages);
+      setPageLimit(data?.pagination?.limit ?? PAGE_SIZE);
     } catch (e) {
       console.error("Error fetching users:", e);
     } finally {
@@ -59,18 +57,20 @@ export default function UsersList() {
   };
 
   const listColumns = useMemo(() => [
-    { key: "first_name", label: t("user.first_name") },
-    { key: "last_name", label: t("user.last_name") },
-    { key: "email", label: t("user.email") },
-    { key: "username", label: t("user.username"), width: 2 },
-    { key: "phone", label: t("user.phone"), width: 2 },
+    { key: "first_name", label: t("user.first_name"), filter: true },
+    { key: "last_name", label: t("user.last_name"), filter: true },
+    { key: "email", label: t("user.email"), filter: true },
+    { key: "username", label: t("user.username"), width: 2, filter: true },
+    { key: "phone", label: t("user.phone"), width: 2, filter: true },
     {
       key: "role", label: t("user.role"), width: 2,
       render: (r) => (r.role ? t(`userRole.${r.role}`) : ""),
+      filter: { type: "select", options: EMPLOYEE_ROLES.map((r) => ({ value: r, label: t(`userRole.${r}`) })) },
     },
     {
       key: "is_active", label: t("user.activity"), width: 1,
       render: (r) => (r.is_active ? t("user.active") : t("user.inactive")),
+      filter: { type: "select", options: [{ value: "1", label: t("user.active") }, { value: "0", label: t("user.inactive") }] },
     },
   ], [t, locale]);
 
@@ -87,7 +87,7 @@ export default function UsersList() {
         updateDataByPage={fetchUsers}
         pageCount={pageCount}
         hideActions={1}
-        onNew={disableEdit?() => openModal({}):null}
+        onNew={!authDisableEdit?() => openModal({}):null}
         onClickItem={(item) => openModal(item)}
       />
       <Modal open={open} onClose={() => setOpen(false)}>
@@ -95,7 +95,7 @@ export default function UsersList() {
           initialUser={editItem}
           onSubmitForm={handleSubmit}
           onCloseForm={() => setOpen(false)}
-          disableEdit={disableEdit}
+          disableEdit={authDisableEdit}
         />
       </Modal>
     </>

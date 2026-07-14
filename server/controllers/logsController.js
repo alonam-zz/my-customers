@@ -4,9 +4,8 @@ import logsModel from "../models/logs.model.js";
 
 // Get all logs
 async function getLogs(req, res){
-    console.log("GET /api/service logs called");
   try {
-    const filter = req.query.filter?JSON.parse(req.query.filter): [];  console.log(filter);
+    const filter = req.query.filter?JSON.parse(req.query.filter): [];
     const page = Number(req.query.page) || 1;
     const limit = Number(req.query.limit) || 20;
     const offset = (page - 1) * limit;
@@ -28,7 +27,6 @@ async function createLog (req, res){
       id: result.insertId,
       ...req.body
     };
-    console.log("new log:"+JSON.stringify(newLog))
     res.json(newLog);
   } catch (error) {
     console.error('Database error:', error);

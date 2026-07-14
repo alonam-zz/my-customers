@@ -5,15 +5,15 @@ import employeesModel from "../models/employees.model.js";
 
 // Get all service calls lines of call
 async function getAllServiceCallsByCallId(req, res){
-    console.log("GET /api/service calls called");
   try {
     const { call_id } = req.params;
     const page = Number(req.query.page) || 1;
     const limit = Number(req.query.limit) || 20;
     const offset = (page - 1) * limit;
-    const {total,items} = await serviceCallLinesModel.getByCallId(call_id,limit,offset);
+    const sortBy = req.query.sortBy;
+    const sortDir = req.query.sortDir;
+    const {total,items} = await serviceCallLinesModel.getByCallId(call_id,sortBy,sortDir,limit,offset);
     const totalPages = Math.ceil(total/limit)
-    console.log(items);
     res.json({items:items,pagination:{total:total,limit:limit,page:page,totalPages:totalPages}});
   } catch (error) {
     console.error('Database error:', error);
@@ -25,7 +25,6 @@ async function createServiceCallLine(req, res){
   try {
     const { call_id } = req.params;
     const result = await serviceCallLinesModel.createServiceCallLine(call_id,req.body)
-    console.log(result);
     const [rows] = await serviceCallLinesModel.getById(result.insertId);
     const newServiceCallLine = {
       ...rows[0]

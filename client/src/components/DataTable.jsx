@@ -2,6 +2,10 @@
 import React, { useMemo, useState,useEffect } from "react";
 import { getCookie, setCookie } from "../utils/cookies.js";
 import { useI18n } from "../i18n/I18nProvider";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
+import { he } from "date-fns/locale/he"; 
+import { toISO } from "../utils/date.js";
 
 
 export default function DataTable({
@@ -15,7 +19,7 @@ export default function DataTable({
   pageCount = null
 }) {
 
-  const { t } = useI18n();
+  const { t,locale } = useI18n();
 
   const [sort, setSort] = useState(
     initialSort || (columns[0] ? { key: columns[0].key, dir: "asc" } : null)
@@ -33,8 +37,26 @@ export default function DataTable({
     return initialPageSize;
   });
 
-  console.log(data);
   const [page, setPage] = useState(1);
+
+  // Column filters: `filterInputs` updates on every keystroke; `filter` is the
+  // debounced value that actually triggers a server fetch.
+  const [filterInputs, setFilterInputs] = useState({});
+  const [filter, setFilter] = useState({});
+
+  useEffect(() => {
+    const id = setTimeout(() => { setFilter(filterInputs); setPage(1); }, 400);
+    return () => clearTimeout(id);
+  }, [filterInputs]);
+
+  const onFilterChange = (key, value) => {
+    setFilterInputs((f) => {
+      const next = { ...f };
+      if (value === "" || value == null) delete next[key];
+      else next[key] = value;
+      return next;
+    });
+  };
 
   const getByPath = (obj, path) =>
     String(path).split(".").reduce((o, k) => o?.[k], obj);
@@ -74,21 +96,67 @@ export default function DataTable({
     ? Math.max(1, Number(pageCount) || 1)
     : Math.max(1, Math.ceil(sorted.length / pageSize));
 
+  // Server-paginated lists are also server-sorted, so render `data` as returned.
+  // Local lists still sort/slice on the client.
   const pageData = useMemo(
     () =>
       serverPaginated
-        ? sorted
+        ? data
         : sorted.slice((page - 1) * pageSize, page * pageSize),
-    [sorted, page, pageSize, serverPaginated]
+    [data, sorted, page, pageSize, serverPaginated]
   );
 
   useEffect(()=>{
     async function updateDataTable(){
-         if (updateDataByPage) await updateDataByPage(pageSize,page);
+         if (updateDataByPage) await updateDataByPage(pageSize,page,sort?.key,sort?.dir,filter);
     }
     updateDataTable();
 
-  },[page,pageSize])
+  },[page,pageSize,sort,filter])
+
+  // A filterable column declares `filter: true` (text) or
+  // `filter: { type: "select", options: [{value,label}] }`.
+  const hasFilters = columns.some((c) => c.filter && !c.hide);
+  function renderFilterControl(col) {
+    if (!col.filter) return null;
+    const cfg = col.filter === true ? { type: "text" } : col.filter;
+    const value = filterInputs[col.key] ?? "";
+    if (cfg.type === "select") {
+      return (
+        <select
+          className="form-select form-select-sm"
+          value={value}
+          onChange={(e) => onFilterChange(col.key, e.target.value)}
+        >
+          <option value="">{t("common.all")}</option>
+          {cfg.options.map((o) => (
+            <option key={o.value} value={o.value}>{o.label}</option>
+          ))}
+        </select>
+      );
+    }
+    if (cfg.type === "date") {
+      return (
+         <DatePicker
+          type="date"
+          className="form-control"
+          value={value}
+          selected={value? new Date(value) : null}
+           onChange={(date) => {onFilterChange(col.key, toISO(date))}}
+          dateFormat="dd/MM/yyyy hh"
+          locale={locale=="he"?he:''}
+        />
+      )
+    }
+    return (
+      <input
+        className="form-control form-control-sm"
+        value={value}
+        placeholder={t("common.search")}
+        onChange={(e) => onFilterChange(col.key, e.target.value)}
+      />
+    );
+  }
 
   function toggleSort(key) {
     setPage(1);
@@ -97,13 +165,14 @@ export default function DataTable({
     );
   }
 
+  const visibleColumns = columns.filter((col) => !col?.hide);    
 
   return (
     <div className="table-responsive">
       <table className="table table-sm table-hover align-middle">
         <thead className="text-sm-start">
           <tr>
-            {columns.map((col) => (
+            {visibleColumns.map((col) => (
               <th
                 key={col.key}
                 style={{
@@ -125,6 +194,15 @@ export default function DataTable({
               </th>
             ))}
           </tr>
+          {hasFilters && (
+            <tr>
+              {visibleColumns.map((col) => (
+                <th key={col.key} className="fw-normal">
+                  {renderFilterControl(col)}
+                </th>
+              ))}
+            </tr>
+          )}
         </thead>
 
         <tbody className="text-start">
@@ -134,7 +212,7 @@ export default function DataTable({
               onClick={onClickItem ? () => onClickItem(row) : undefined}
               style={onClickItem ? { cursor: "pointer" } : undefined}
             >
-              {columns.map((col) => {
+              {visibleColumns.map((col) => {
                 const content =
                   typeof col.render === "function"
                     ? col.render(row)

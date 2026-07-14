@@ -9,7 +9,12 @@ const I18nCtx = createContext(null);
 const RTL_LOCALES = new Set(["he", "ar", "fa", "ur"]);
 
 function get(obj, path) {
-  return String(path).split(".").reduce((o, k) => (o ? o[k] : undefined), obj);
+  if (obj == null) return undefined;
+  // exact match first, so keys whose text contains "." (e.g. server messages) resolve
+  if (obj[path] !== undefined) return obj[path];
+  const idx = String(path).indexOf(".");
+  if (idx === -1) return undefined;
+  return get(obj[path.slice(0, idx)], path.slice(idx + 1));
 }
 
 function interpolate(str, values = {}) {
@@ -38,7 +43,7 @@ export default function I18nProvider({ children, initialLocale = "en" }) {
         link.rel = "stylesheet";
         document.head.appendChild(link);
     }
-    link.href = href; console.log("change to "+link.href);
+    link.href = href;
     
     document.documentElement.lang = locale;
     document.documentElement.dir = RTL_LOCALES.has(locale) ? "rtl" : "ltr";

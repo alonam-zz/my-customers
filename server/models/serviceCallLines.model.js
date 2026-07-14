@@ -1,4 +1,5 @@
 import pool from "../db.js";
+import { buildOrderBy } from "../helpers/sort.js";
 
 
 // service_calls joined twice to employees (via technicians / support_agents)
@@ -9,15 +10,27 @@ const SELECT_BASE =
     'FROM service_calls_lines scl ' +
     'LEFT JOIN employees te ON (scl.employee_id = te.id) ';
 
-async function getAll(limit,offset){
+// columns the client may sort by -> real SQL column (only these can reach ORDER BY)
+const SORT_WHITELIST = {
+    id: "scl.id",
+    status: "scl.status",
+    created_at: "scl.created_at",
+    updated_at: "scl.updated_at",
+    employee_name: "employee_name",
+};
+const DEFAULT_ORDER = "created_at DESC";
+
+async function getAll(sortBy,sortDir,limit,offset){
+    const orderBy = buildOrderBy(sortBy, sortDir, SORT_WHITELIST, DEFAULT_ORDER);
     const [total] = await pool.execute('SELECT COUNT(*) AS total FROM service_calls_lines');
-    const [items] = await pool.execute(SELECT_BASE +'  LIMIT '+limit +' OFFSET '+offset);
+    const [items] = await pool.execute(SELECT_BASE + orderBy + '  LIMIT '+limit +' OFFSET '+offset);
     return {total:total[0]["total"],items:items};
 }
 
-async function getByCallId(id,limit,offset){
+async function getByCallId(id,sortBy,sortDir,limit,offset){
+  const orderBy = buildOrderBy(sortBy, sortDir, SORT_WHITELIST, DEFAULT_ORDER);
   const [total] = await pool.execute('SELECT COUNT(*) AS total FROM service_calls_lines WHERE call_id = ?', [id]);
-  const [items] = await pool.execute(SELECT_BASE + 'WHERE scl.call_id = ? ORDER BY created_at ASC LIMIT '+limit +' OFFSET '+offset, [id]);
+  const [items] = await pool.execute(SELECT_BASE + 'WHERE scl.call_id = ? '+orderBy+' LIMIT '+limit +' OFFSET '+offset, [id]);
   return {total:total[0]["total"],items:items};
 }
 
@@ -36,20 +49,7 @@ async function createServiceCallLine(call_id,call_line){
     return result;
 }
 
-// async function updateById(id, call){
-//     const {
-//       title,description,status,priority,service_id,assigned_support_agent_id,assigned_technician_id,type} = call;
-//     await pool.execute(
-//       'UPDATE service_calls SET title=?,description=?,status=?,priority=?,service_id=?,assigned_support_agent_id=?, assigned_technician_id=?,type=? WHERE id = ?',
-//       [title,description,status,priority,service_id,assigned_support_agent_id, assigned_technician_id,type,id]
-//     );
-//     const [updated] = await getById(id); console.log("----",updated)
-//     return updated[0];
-// }
 
-async function deleteById(id){
-    await pool.execute('DELETE FROM service_calls WHERE id = ?', [id]);
-}
 
 export default {
   getAll,

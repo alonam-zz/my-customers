@@ -1,12 +1,23 @@
 import pool from "../db.js";
-               
-async function getAllCustomerProductsById(id){
+import { buildOrderBy } from "../helpers/sort.js";
+
+// columns the client may sort by -> real SQL column (only these can reach ORDER BY)
+const SORT_WHITELIST = {
+    product_id: "p.id",
+    product_name: "p.name",
+    sku: "p.sku",
+    price: "p.price",
+};
+const DEFAULT_ORDER = "p.name ASC";
+
+async function getAllCustomerProductsById(id,sortBy,sortDir){
+    const orderBy = buildOrderBy(sortBy, sortDir, SORT_WHITELIST, DEFAULT_ORDER);
     const [rows] = await pool.execute('SELECT cs.id as customer_product_id ,p.id as product_id, '+
-        'p.name as product_name, p.sku,p.description, p.price '+ 
+        'p.name as product_name, p.sku,p.description, p.price '+
         'FROM customers c '+
         'LEFT JOIN customer_products cs ON (c.id = cs.customer_id) '+
         'LEFT JOIN products p ON (cs.product_id = p.id) '+
-        'WHERE c.id = ? ORDER BY p.name ASC',[id]);
+        'WHERE c.id = ? '+orderBy,[id]);
     return rows;
 }
 

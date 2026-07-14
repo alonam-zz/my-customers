@@ -1,7 +1,7 @@
 #root {
   max-width: 1780px;
   margin: 0 auto;
-  padding: 2rem;
+  /* padding: 2rem; */
   text-align: start;
   width:100%;
 }
@@ -14,6 +14,18 @@
     --bg-danger: #dc3545;
     --bg-success: #198754;
     --bg-dark: #212529;
+
+    /* distinct categorical colors, one per call type */
+    --type-installation: #0d6efd;
+    --type-maintenance:  #6f42c1;
+    --type-question:     #0dcaf0;
+    --type-fault:        #dc3545;
+    --type-complaint:    #fd7e14;
+    --type-billing:      #198754;
+    --type-warranty:     #20c997;
+    --type-upgrade:      #6610f2;
+    --type-emergency:    #d63384;
+    --type-other:        #6c757d;
   }
 
 .logo {

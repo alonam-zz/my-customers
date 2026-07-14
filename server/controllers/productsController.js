@@ -4,14 +4,16 @@ import productsModel from "../models/products.model.js";
 
 // Get all customers
 
-async function getAllProducts(req,res){         
-    console.log("GET /api/products called");
+async function getAllProducts(req,res){
   try {
     const all = req.query.all;
     const page = Number(req.query.page) || 1;
     const limit = all ? Number.MAX_SAFE_INTEGER : Number(req.query.limit) || 20;
     const offset = all ? 0 : (page - 1) * limit;
-    const {total,items} = await productsModel.getAll(limit,offset);
+    const sortBy = req.query.sortBy;
+    const sortDir = req.query.sortDir;
+    const filter = req.query.filter ? JSON.parse(req.query.filter) : {};
+    const {total,items} = await productsModel.getAll(sortBy,sortDir,limit,offset,filter);
     const totalPages = Math.ceil(total/limit)
     res.json({items:items,pagination:{total:total,limit:limit,page:page,totalPages:totalPages}});
   } catch (error) {

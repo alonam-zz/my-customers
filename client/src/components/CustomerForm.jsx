@@ -23,6 +23,7 @@ export default function CustomerForm({ initialCustomer = {}, onSubmitForm ,...re
     first_name: initialCustomer.first_name ?? "",
     last_name: initialCustomer.last_name ?? "",
     address: initialCustomer.address ?? "",
+    region: initialCustomer.region ?? "",
     // priority is nullable (string ""), convert to number/null on submit
     phone: initialCustomer.phone ?? "",
     phone2: initialCustomer.phone2 ?? "",
@@ -33,6 +34,7 @@ export default function CustomerForm({ initialCustomer = {}, onSubmitForm ,...re
   });
 
   const onCloseForm = rest.onCloseForm;
+  const areas = rest.areas ?? []; // grouped area options for the region <Select>
 
 
   const customer_priorities = CUSTOMER_PRIORITY.reduce((arr,priority)=>{
@@ -40,8 +42,6 @@ export default function CustomerForm({ initialCustomer = {}, onSubmitForm ,...re
     arr.push(obj)
     return arr;
   },[]);
-
-  console.log(customer_priorities);
 
   const customer_types = CUSTOMER_TYPE.reduce((arr,type)=>{
     const obj = {id:type,name:t("customerType."+type)}
@@ -51,8 +51,8 @@ export default function CustomerForm({ initialCustomer = {}, onSubmitForm ,...re
 
 
   const handleChange = (e) => {
-    const { name, value } = e.target; console.log(value);
-    let realValue = (e.target.type=="checkbox")?e.target.checked:value; console.log({ ...form, [name]: realValue }); 
+    const { name, value } = e.target;
+    let realValue = (e.target.type=="checkbox")?e.target.checked:value;
     setForm((f) => ( { ...f, [name]: realValue }));
   };
 
@@ -66,6 +66,7 @@ export default function CustomerForm({ initialCustomer = {}, onSubmitForm ,...re
       first_name: form.first_name.trim(),
       last_name: form.last_name.trim(),
       address: form.address || null,
+      region: form.region || null,
       phone: form.phone || null,
       phone2: form.phone2 || null,
       email: form.email || null,
@@ -164,13 +165,13 @@ export default function CustomerForm({ initialCustomer = {}, onSubmitForm ,...re
         </div>
 
         <div className="col-12 col-md-6">
-          <label className="form-label">{t("customer.email")}</label>
+          <label className="form-label">{t("customer.email")} *</label>
           <input
             type="email"
             className="form-control"
             name="email"
             value={form.email}
-            onChange={handleChange}
+            onChange={handleChange} required
           />
         </div>
 
@@ -183,6 +184,17 @@ export default function CustomerForm({ initialCustomer = {}, onSubmitForm ,...re
             onChange={handleChange}
           />
           </div>
+
+          <div className="col-12 col-md-6">
+          <label className="form-label">{t("customer.region")} *</label>
+          <Select
+            name="region"
+            options={areas}
+            value={form.region}
+            onChange={handleChange}
+            placeholder={t("technician.selectRegion")} required
+          />
+          </div>
           <div className="col-12 col-md-3">
           <label className="form-label">{t("customer.status")}</label>
           <select
@@ -192,14 +204,14 @@ export default function CustomerForm({ initialCustomer = {}, onSubmitForm ,...re
             onChange={handleChange}
           >
             {CUSTOMER_STATUSES.map((s,i)=>(
-                (<option value={i}>{t("customerStatus."+s)}</option>)
+                (<option  key={i} value={i}>{t("customerStatus."+s)}</option>)
             ))}
           </select>
           </div>
         
       </div>
 
-      <div className="d-flex justify-content-end gap-2 mt-4">
+      <div className={`d-flex justify-content-`+(onCloseForm?"end":"start") +` gap-2 mt-4`}>
         <button type="cancel" className="btn btn-outline-secondary" onClick={onCloseForm} >{t("common.cancel")}</button>
         <button type="reset" className="btn btn-secondary" onClick={()=>{
           setForm({ name:"", first_name:"", last_name:"", address:"", phone:"", phone2:"", email:"", id:form.id } );

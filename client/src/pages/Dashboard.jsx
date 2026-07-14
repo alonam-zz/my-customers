@@ -1,65 +1,21 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
 import DataTable from "../components/DataTable.jsx";
 import { useI18n } from "../i18n/I18nProvider";
+import MyCalls from './MyCalls.jsx'
+import useAuth from "../auth/AuthProvider.jsx";
+import useApi from "../hooks/useApi.js";
+import { formatDateTime } from "../utils/date.js";
 
-const STATUS_BADGE = {
-  new: "text-secondary",
-  open: "text-primary",
-  in_progress: "text-info",
-  waiting_customer: "text-warning",
-  resolved: "text-success",
-  closed: "text-dark",
-};
-
-/* ---------- mock data (replace with /api/dashboard fetch) ---------- */
-const MOCK_SUMMARY = {
-  opened: 37,
-  newToday: 8,
-  late: 5,
-  waitingCustomer: 6,
-  waitingTechnician: 4,
-  closedToday: 12,
-};
-
-const MOCK_HIGH_PRIORITY = [
-  { id: 1042, customer: "מזרני סביון", description: "מזגן לא מקרר", status: "in_progress", opened_at: "2026-06-18", responsible: "דנה לוי" },
-  { id: 1039, customer: "יוסי חשמל", description: "קצר בלוח החשמל", status: "open", opened_at: "2026-06-20", responsible: "רון שגב" },
-  { id: 1031, customer: "אופנועי ניסים", description: "תקלה במצלמות אבטחה", status: "waiting_technician", opened_at: "2026-06-17", responsible: null },
-];
-
-const MOCK_PER_USER = [
-  { user: "דנה לוי", open: 12, late: 2, closedToday: 5 },
-  { user: "רון שגב", open: 9, late: 1, closedToday: 4 },
-  { user: "אבי מזרחי", open: 7, late: 2, closedToday: 3 },
-  { user: null, open: 4, late: 0, closedToday: 0 }, // unassigned
-];
-
-const MOCK_PERFORMANCE = {
-  avgTimeToClose: "2.4 ימים",
-  closedThisWeek: 48,
-  reopened: 3,
-  avgFirstResponse: "1.8 שעות",
-};
-
-// card 5: counts per reason + the calls behind them.
-// `problem` is one of: noResponsible | noUpdate24h | reopened | waitingTechAssign
-const MOCK_INTERVENTION = {
-  summary: { noResponsible: 4, noUpdate24h: 7, reopened: 3, waitingTechAssign: 4 },
-  calls: [
-    { id: 1031, customer: "אופנועי ניסים", description: "תקלה במצלמות אבטחה", problem: "waitingTechAssign" },
-    { id: 1028, customer: "יוסי חשמל", description: "אין מתח בלוח הראשי", problem: "noResponsible" },
-    { id: 1022, customer: "מזרני סביון", description: "דליפת מים מהמזגן", problem: "noUpdate24h" },
-    { id: 1015, customer: "אופנועי ניסים", description: "אזעקה מתריעה ללא סיבה", problem: "reopened" },
-  ],
-};
+import { STATUS_BADGE } from "../utils/constants.js";
+import { Link } from "react-router-dom";
 
 const PROBLEM_BADGE = {
-  noResponsible: "text-danger",
+  noResponsible: "text-info",
   noUpdate24h: "text-warning",
-  reopened: "text-info",
+  noUpdate36h: "text-danger",
   waitingTechAssign: "text-secondary",
 };
 
@@ -82,26 +38,93 @@ export default function Dashboard() {
   const { t } = useI18n();
   const navigate = useNavigate();
 
-  const [loading, setLoading] = useState(true);
-  const [summary, setSummary] = useState(MOCK_SUMMARY);
-  const [highPriority, setHighPriority] = useState(MOCK_HIGH_PRIORITY);
-  const [perUser, setPerUser] = useState(MOCK_PER_USER);
-  const [performance, setPerformance] = useState(MOCK_PERFORMANCE);
-  const [intervention, setIntervention] = useState(MOCK_INTERVENTION);
+  // control flag read inside async callbacks / setTimeout — must be a ref so every
+  // closure sees the live value (React state would be stale in those closures).
+  const breakStateRef = useRef(false);
+  const [loading, setLoading] = useState(false);
+  const [loading1, setLoading1] = useState(true);
+  const [loading2, setLoading2] = useState(true);
+  const [loading3, setLoading3] = useState(true);
+  const [loading4, setLoading4] = useState(true);
+  const [loading5, setLoading5] = useState(true);
+  const [summary, setSummary] = useState({});
+  const [highPriority, setHighPriority] = useState([]);
+  const [perUser, setPerUser] = useState([]);
+  const [performance, setPerformance] = useState({});
+  const [intervention, setIntervention] = useState({ summary: {}, calls: [] });
 
-  // TODO (server side): GET /api/dashboard
+  const {user} = useAuth()
+  const send = useApi()
+
+  if (["support","technician"].includes(user.role) ){
+    return <MyCalls/>
+  }
+
+  const fetchStates = async (state)=>{
+    const {ok,data,status} = await send(`/api/dashboard/getState?state=${state}`);  
+    if (ok){
+      switch(state){
+        case 1:
+          setSummary(data);
+          setLoading1(false);
+          break;
+        case 2:
+          setHighPriority(data);
+          setLoading2(false);
+          break;
+        case 3:
+          setPerformance(data);
+          setLoading3(false);
+          break;
+        case 4:
+          setPerUser(data);
+          setLoading4(false);
+          break;
+        case 5:
+          setIntervention(data);
+          setLoading5(false);
+          break;
+
+      }
+    }
+    else if (status==401){
+      navigate("/login");
+    }
+    return status;
+  }
+
+  const callState = async (i) =>{
+    if (breakStateRef.current) return;
+    const status = await fetchStates(i);
+    if (status==401){
+      breakStateRef.current = true;
+      return;
+    }
+
+  }
+
+  const callStates = async () =>{
+    if (breakStateRef.current) return;
+    for (let i=1;i<=5;i++){
+      if (breakStateRef.current) break;    
+      await callState(i);
+    }
+    setTimeout(async ()=>{ await callStates(); }, 0.5 * 60  * 1000);
+  }
+    
+
   useEffect(() => {
-    let cancelled = false;
+    let cancelled = false; 
     async function load() {
       try {
-        setLoading(true);
-        // const res = await fetch("/api/dashboard");
-        // const d = await res.json();
-        // if (!cancelled) { setSummary(d.summary); setHighPriority(d.highPriority); ... }
+        // setLoading(true);
+        await callStates();
+        
+
       } catch (e) {
         console.error("Error loading dashboard:", e);
       } finally {
-        if (!cancelled) setLoading(false);
+        // if (!cancelled) setLoading(false);
       }
     }
     load();
@@ -114,22 +137,61 @@ export default function Dashboard() {
     </span>
   );
 
+  const loadingCircle = ()=>{
+    return (
+      <div className="position-absolute top-50 start-50 translate-middle ">
+        <div className="spinner-border text-primary" role="status">
+          <span className="visually-hidden">{t("common.loading")}</span>
+        </div>
+      </div>
+    )
+  }
+
   const highPriorityColumns = useMemo(
     () => [
-      { key: "id", label: t("servicecall.id"), width: 1 },
-      { key: "customer", label: t("dashboard.customer"), width: 2 },
-      { key: "description", label: t("servicecall.description"), truncate: true },
-      { key: "status", label: t("servicecall.status"), width: 2, render: (r) => statusBadge(r.status) },
-      { key: "opened_at", label: t("servicecall.openedAt"), width: 2 },
-      { key: "responsible", label: t("servicecall.responsible"), width: 2, render: (r) => r.responsible || <span className="text-muted">{t("dashboard.unassigned")}</span> },
-      {
-        key: "_link", label: "", width: 1, sortable: false,
+      {key: "id", label: t("servicecall.id"), width: 1,hide:true},
+      {key: "customer_id", label: '', width: 1,hide:true},
+      {key: "score", label: '', width: 1,hide:true},
+      {key: "token", label: t("servicecall.token"), width: 2,
         render: (r) => (
-          <button type="button" className="btn btn-sm btn-link p-0 text-decoration-none" onClick={() => navigate(`/calls/${r.id}`)}>
-            #{r.id}
-          </button>
-        ),
+          <Link className="btn btn-sm btn-link p-0 text-decoration-none"  to={`/customers/${r.customer_id}/calls/${r.id}`} target="_new" rel="noopener noreferrer">
+        {r.token}
+        </Link>
+        )
       },
+      { key: "customer_name", label: t("dashboard.customer"), width: 2 ,truncate:true,
+        render: (r) => (
+        <Link className="btn btn-sm btn-link p-0 text-decoration-none"  to={`/customers/${r.customer_id}`} target="_new" rel="noopener noreferrer">
+        {r.customer_name}
+        </Link>
+        )
+      },
+      { key: "description", label: t("servicecall.description"), truncate: true ,width:3 },
+      {
+              key: "status",
+              label: t("servicecall.status"),
+              width: 2,
+              render: (r) => (
+                <span className={`badge ${STATUS_BADGE[r.status] || "text-bg-secondary"}`}>
+                  {t(`callStatus.${r.status}`)}
+                </span>
+              ),
+              render: (r) => (
+                <span className={`badge ${STATUS_BADGE[r.status] || "text-bg-secondary"}`}>
+                  {t(`callStatus.${r.status}`)}
+                </span>
+              ),
+      },
+      { key: "openedAt", label: t("servicecall.openedAt"), width: 2 ,render:(r)=>formatDateTime(r.openedAt)},
+      { key: "support_agent", label: t("dashboard.support_agent"), width: 2, truncate: true,render: (r) => r.support_agent || <span className="text-muted">{t("dashboard.unassigned")}</span> },
+      // {
+      //   key: "_link", label: "", width: 1, sortable: false,
+      //   render: (r) => (
+      //     <button type="button" className="btn btn-sm btn-link p-0 text-decoration-none" onClick={() => navigate(`/calls/${r.id}`)}>
+      //       #{r.id}
+      //     </button>
+      //   ),
+      // },
     ],
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [t, navigate]
@@ -137,7 +199,7 @@ export default function Dashboard() {
 
   const perUserColumns = useMemo(
     () => [
-      { key: "user", label: t("dashboard.user"), render: (r) => r.user || <span className="text-muted">{t("dashboard.unassigned")}</span> },
+      { key: "support_agent", label: t("dashboard.support_agent"),width:3, render: (r) => r.support_agent || <span className="text-muted">{t("dashboard.unassigned")}</span> },
       { key: "open", label: t("dashboard.openCount"), width: 2 },
       { key: "late", label: t("dashboard.lateCount"), width: 2, render: (r) => r.late > 0 ? <span className="text-danger fw-bold">{r.late}</span> : r.late },
       { key: "closedToday", label: t("dashboard.closedTodayCount"), width: 2 },
@@ -147,22 +209,34 @@ export default function Dashboard() {
 
   const interventionColumns = useMemo(
     () => [
-      {
-        key: "id", label: t("servicecall.id"), width: 2, sortable: false,
+      {key: "id", label: t("servicecall.id"), width: 1,hide:true},
+      {key: "customer_id", label: '', width: 1,hide:true},
+      {key: "score", label: '', width: 1,hide:true},
+      {key: "token", label: t("servicecall.token"), width: 1,
         render: (r) => (
-          <button type="button" className="btn btn-sm btn-link p-0 text-decoration-none" onClick={() => navigate(`/calls/${r.id}`)}>
-            #{r.id}
-          </button>
-        ),
+          <Link className="btn btn-sm btn-link p-0 text-decoration-none"  to={`/customers/${r.customer_id}/calls/${r.id}`} target="_new" rel="noopener noreferrer">
+        {r.token}
+        </Link>
+        )
       },
-      { key: "customer", label: t("dashboard.customer"), width: 3 },
-      { key: "description", label: t("servicecall.description"), truncate: true },
+      { key: "customer_name", label: t("dashboard.customer"), width: 2,truncate:true,
+        render: (r) => (
+        <Link className="btn btn-sm btn-link p-0 text-decoration-none"  to={`/customers/${r.customer_id}`} target="_new" rel="noopener noreferrer">
+        {r.customer_name}
+        </Link>
+        )
+
+       },
+      { key: "title", label: t("servicecall.description"), truncate: true ,width:2},
       {
         key: "problem", label: t("dashboard.problem"), width: 3,
         render: (r) => (
-          <span className={`badge ${PROBLEM_BADGE[r.problem] || "text-secondary"}`}>
-            {t(`dashboard.${r.problem}`)}
-          </span>
+          (r.problem).map((p)=>(
+            <span key={p} className={`badge ${PROBLEM_BADGE[p] || "text-secondary"}`}>
+              {t(`dashboard.${p}`)}
+            </span>
+            ) 
+          )
         ),
       },
     ],
@@ -171,16 +245,16 @@ export default function Dashboard() {
   );
 
   if (loading) return <div className="text-center p-4">{t("common.loading")}</div>;
-
+  
   return (
-    <div className="container-fluid">
+    <div className="container-fluid"> 
       {/* <h1 className="mb-3">{t("dashboard.title")}</h1> */}
 
       {/* ===== card 1: status summary ===== */}
       <div className="card shadow-sm mb-3">
         <div className="card-header fw-bold">{t("dashboard.statuses")}</div>
-        <div className="card-body">
-          <div className="row g-3 mb-3">
+        <div className="card-body position-relative">
+          <div className={`row g-3 mb-3 ${loading1 ? "invisible" : ""}`}>
             <StatTile label={t("dashboard.opened")} value={summary.opened} variant="primary" icon="folder-open" />
             <StatTile label={t("dashboard.newToday")} value={summary.newToday} variant="secondary" icon="plus" />
             <StatTile label={t("dashboard.late")} value={summary.late} variant="danger" icon="clock" />
@@ -188,6 +262,9 @@ export default function Dashboard() {
             <StatTile label={t("dashboard.waitingTechnician")} value={summary.waitingTechnician} variant="info" icon="user-gear" />
             <StatTile label={t("dashboard.closedToday")} value={summary.closedToday} variant="dark" icon="xmark" />
           </div>
+          {loading1 && (
+            (loadingCircle())
+          )}
         </div>
       </div>
 
@@ -196,13 +273,18 @@ export default function Dashboard() {
         <div className="col-12 col-xl-12">
           <div className="card shadow-sm h-100">
             <div className="card-header fw-bold">{t("dashboard.highPriority")}</div>
-            <div className="card-body">
+            <div className="card-body position-relative" >
+              <div className={`${loading2 ? "invisible" : ""}`}>
               <DataTable
                 columns={highPriorityColumns}
                 data={highPriority.slice(0, 10)}
-                initialSort={{ key: "opened_at", dir: "asc" }}
+                initialSort={{ key: "score", dir: "desc" }}
                 pageSizeOptions={[10, 20]}
               />
+              </div>
+              {loading2 && (
+                (loadingCircle())
+              )}
             </div>
           </div>
         </div>
@@ -212,32 +294,42 @@ export default function Dashboard() {
 
 <div className="row g-3 mb-3">
       {/* ===== card 4: performance ===== */}
-      <div className="col-8">
+      <div className="col-7">
       <div className="card shadow-sm h-100 ">
         <div className="card-header fw-bold">{t("dashboard.performance")}</div>
-        <div className="card-body">
-          <div className="row g-3">
-            <StatTile label={t("dashboard.avgTimeToClose")} value={performance.avgTimeToClose} variant="primary" icon="clock" />
-            <StatTile label={t("dashboard.closedThisWeek")} value={performance.closedThisWeek} variant="success" icon="xmark" />
-            <StatTile label={t("dashboard.reopened")} value={performance.reopened} variant="warning" icon="arrows-rotate" />
-            <StatTile label={t("dashboard.avgFirstResponse")} value={performance.avgFirstResponse} variant="info" icon="paper-plane" />
+        <div className="card-body position-relative">
+          <div className={`${loading3 ? "invisible" : ""}`}>
+            <div className="row g-3">
+              <StatTile label={t("dashboard.avgTimeToClose")} value={`${performance.avgHoursToClose} ${t('dashboard.days')}`} variant="primary" icon="clock" />
+              <StatTile label={t("dashboard.closedThisWeek")} value={`${performance.closedThisWeek} ${t('dashboard.calls')}`} variant="success" icon="xmark" />
+              {/* <StatTile label={t("dashboard.reopened")} value={performance.reopened} variant="warning" icon="arrows-rotate" /> */}
+              <StatTile label={t("dashboard.avgHoursToFirstResponse")} value={`${performance.avgHoursToFirstResponse} ${t('dashboard.hours')}`} variant="info" icon="paper-plane" />
+            </div>
           </div>
+          {loading3 && (
+                (loadingCircle())
+              )}    
         </div>
       </div>
       </div>
 
       {/* ===== card 3: calls per user ===== */}
-        <div className="col-4">
+        <div className="col-5">
           <div className="card shadow-sm h-100">
             <div className="card-header fw-bold">{t("dashboard.perUser")}</div>
-            <div className="card-body">
-              <DataTable
-                columns={perUserColumns}
-                data={perUser}
-                initialSort={{ key: "open", dir: "desc" }}
-                pageSizeOptions={[10, 20]}
-                showPagination = {false}
-              />
+            <div className="card-body position-relative">
+              <div className={`${loading4 ? "invisible" : ""}`}>
+                <DataTable
+                  columns={perUserColumns}
+                  data={perUser}
+                  initialSort={{ key: "open", dir: "desc" }}
+                  pageSizeOptions={[10, 20]}
+                  showPagination = {false}
+                />
+              </div>
+              {loading4 && (
+                (loadingCircle())
+              )}
             </div>
           </div>
         </div>
@@ -249,10 +341,11 @@ export default function Dashboard() {
           <div className="card shadow-sm ">
             <div className="card-header fw-bold">{t("dashboard.intervention")}</div>
             <div className="card-body">
-              <div className="row g-3 mb-3">
-                <StatTile label={t("dashboard.noResponsible")} value={intervention.summary.noResponsible} variant="danger" icon="user" />
+              <div className={`${loading5 ? "invisible" : ""}`}>
+              <div className={`row g-3 mb-3`}>
+                <StatTile label={t("dashboard.noResponsible")} value={intervention.summary.noResponsible} variant="info" icon="user" />
                 <StatTile label={t("dashboard.noUpdate24h")} value={intervention.summary.noUpdate24h} variant="warning" icon="clock" />
-                <StatTile label={t("dashboard.reopened")} value={intervention.summary.reopened} variant="info" icon="arrows-rotate" />
+                <StatTile label={t("dashboard.noUpdate36h")} value={intervention.summary.noUpdate36h} variant="danger" icon="circle-exclamation" />
                 <StatTile label={t("dashboard.waitingTechAssign")} value={intervention.summary.waitingTechAssign} variant="secondary" icon="user-gear" />
               </div>
               <DataTable
@@ -261,6 +354,11 @@ export default function Dashboard() {
                 initialSort={{ key: "id", dir: "desc" }}
                 pageSizeOptions={[10, 20]}
               />
+              
+            </div>
+            {loading5 && (
+                (loadingCircle())
+              )}
             </div>
           </div>
         </div>
