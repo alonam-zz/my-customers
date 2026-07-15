@@ -1,4 +1,4 @@
-# easyCRM — Customer Service Management
+# easyCRM — Customer Service Management 
 
 A full-stack CRM / service-desk application for managing customers, service calls,
 technicians and support agents. It ships with role-based access control,
