@@ -1,5 +1,7 @@
 # easyCRM — Customer Service Management 
 
+![CRM reports](docs/screenshots/reports.png)
+
 A full-stack CRM / service-desk application for managing customers, service calls,
 technicians and support agents. It ships with role-based access control,
 account activation by email, a reporting dashboard, and full English/Hebrew (RTL)
@@ -152,3 +154,46 @@ Server (`server/`):
 |---------|-------------|
 | `npm run dev` | Start the API with nodemon (auto-reload) |
 | `npm start` | Start the API |
+
+
+## Screenshots
+
+### Dashboard
+
+Overview of service calls, priorities, agent workload and recent activity.
+| Dashboard | Service Call |
+|---|---|
+| ![CRM dashboard01](docs/screenshots/dashboard01.png) | ![CRM dashboard02](docs/screenshots/dashboard02.png) |
+
+
+### Service Call Management
+
+View and update call details, status, priority, assigned technician and activity history.
+
+![Service call page](docs/screenshots/callPage.png)
+
+### Customer Management
+
+Search, filter and manage private and business customers.
+
+|---|---|
+| ![Customers page01](docs/screenshots/customers.png) | ![Customers page02](docs/screenshots/customerShort.png) |
+| ![Customer calls](docs/screenshots/customerCalls.png) | ![Customer call form](docs/screenshots/customerCallShort.png) |
+
+### Reports
+
+Operational reports showing service call distribution and technician performance.
+
+![CRM reports](docs/screenshots/reports.png)
+
+### Support agents
+
+Search, filter and manage support agents.
+
+![CRM support agents](docs/screenshots/supportAgents.png)
+
+### Technician
+
+Search, filter and manage technicians.
+
+![CRM technicians](docs/screenshots/technicians.png)
