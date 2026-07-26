@@ -41,7 +41,7 @@ export default function Sidebar() {
   return (
     <div className="d-flex flex-column flex-shrink-0 " style={{ width: 250 }}>
     <div
-      className="d-flex justify-content-center align-items-center p-3 bg-light border-end pb-4 "
+      className="d-flex justify-content-center align-items-center p-3 bg-light border-end pb-4 mt-5 "
     >
       <img src={logo} alt="easyCRM" style={{ maxWidth: "100%", height: "auto" }} />
     </div>

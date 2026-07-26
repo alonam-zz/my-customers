@@ -1,4 +1,4 @@
-import React ,{ useState } from "react";
+import React from "react";
 import I18nProvider,{ useI18n }  from "../i18n/I18nProvider.jsx";
 import ConfirmProvider from "./ConfirmProvider.jsx";
 import { getCookie, setCookie } from "../utils/cookies.js";
@@ -27,18 +27,14 @@ function LanguageSwitcher() {
 }
 
 export default function AppProvider({ children,initialLocale ="en" }) {
-  // Read locale from cookie or use initial locale
-  const getInitialLocale = () => {
-    const cookieLocale = getCookie('locale');
-    return cookieLocale || initialLocale;
-  };
+  // I18nProvider owns the locale from here on. We only compute the *initial*
+  // value (cookie wins over the prop). Language changes go through
+  // useI18n().setLocale in LanguageSwitcher — no locale state lives here.
+  const startLocale = getCookie('locale') || initialLocale;
 
-  const [locale, setLocale] = useState(getInitialLocale);
-  // Put I18n outermost so it can set <html lang/dir> once.
-  // const [ locale, setLocale ] = useState(initialLocale);
-//   const { locale, setLocale } = useI18n();  
+  // I18n is outermost so it can set <html lang/dir> once.
   return (
-    <I18nProvider initialLocale={locale}>
+    <I18nProvider initialLocale={startLocale}>
       <ConfirmProvider>
          <LanguageSwitcher/>
         {children}

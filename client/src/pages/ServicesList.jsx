@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import List from "../components/List.jsx";
 import Modal from "../components/Modal.jsx";
@@ -8,6 +8,8 @@ import { PAGE_SIZE } from "../utils/constants.js";
 import { useAddLog } from "../utils/logs.js";
 import { useI18n } from "../i18n/I18nProvider";
 import useAuth from "../auth/AuthProvider.jsx";
+
+const INITIAL_SORT = { key: "name", dir: "asc" };
 
 export default function ServicesList() {
   const { t, locale } = useI18n();
@@ -21,9 +23,9 @@ export default function ServicesList() {
   const [open, setOpen] = useState(false);
   const [editItem, setEditItem] = useState({});
 
-  const {user,authDisableEdit} = useAuth();
+  const {authDisableEdit} = useAuth();
 
-  const fetchServices = async (limit = 20, page = 1, sortBy, sortDir, filter) => {
+  const fetchServices = useCallback(async (limit = 20, page = 1, sortBy, sortDir, filter) => {
     try {
       setLoading(true);
       const { ok, data } = await send(`/api/services?limit=${limit}&page=${page}${sortBy ? `&sortBy=${sortBy}&sortDir=${sortDir}` : ""}${filter && Object.keys(filter).length ? `&filter=${encodeURIComponent(JSON.stringify(filter))}` : ""}`);
@@ -36,7 +38,7 @@ export default function ServicesList() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [send]);
 
   const fetchProducts = async () => {
     try {
@@ -53,7 +55,8 @@ export default function ServicesList() {
   // (in full) to populate the form's product dropdown.
   useEffect(() => { fetchProducts(); }, []);
 
-  const openModal = (item = {}) => { setEditItem(item); setOpen(true); };
+  const openModal = useCallback((item = {}) => { setEditItem(item); setOpen(true); }, []);
+  const handleNew = useCallback(() => openModal({}), [openModal]);
 
   // returns true on success so the form knows whether to close.
   const handleSubmit = async (data) => {
@@ -89,12 +92,12 @@ export default function ServicesList() {
       <List
         elements={items}
         listColumns={listColumns}
-        initialSort={{ key: "name", dir: "asc" }}
+        initialSort={INITIAL_SORT}
         updateDataByPage={fetchServices}
         pageCount={pageCount}
         hideActions={1}
-        onNew={!authDisableEdit?() => openModal({}):""}
-        onClickItem={(item) => openModal(item)}
+        onNew={authDisableEdit ? undefined : handleNew}
+        onClickItem={openModal}
       />
       <Modal open={open} onClose={() => setOpen(false)}>
         <ServiceForm

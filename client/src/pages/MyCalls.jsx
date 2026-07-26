@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import List from "../components/List.jsx";
 import { useI18n } from "../i18n/I18nProvider";
@@ -16,6 +16,8 @@ function buildMyFilter(user) {
   return null; // other roles have no "my calls"
 }
 
+const INITIAL_SORT = { key: "created_at", dir: "desc" };
+
 export default function MyCalls() {
   const { t } = useI18n();
   const { user } = useAuth();
@@ -27,7 +29,7 @@ export default function MyCalls() {
   const [pageCount, setPageCount] = useState("");
   const [loading, setLoading] = useState(true);
 
-  const fetchMyCalls = async (limit = 20, page = 1, sortBy, sortDir) => {
+  const fetchMyCalls = useCallback(async (limit = 20, page = 1, sortBy, sortDir) => {
     const filter = buildMyFilter(user);
     if (!filter) { setItems([]); setLoading(false); return; }
     try {
@@ -43,7 +45,12 @@ export default function MyCalls() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [send, user]);
+
+  const openCall = useCallback(
+    (item) => navigate(`/customers/${item.customer_id}/calls/${item.id}`),
+    [navigate]
+  );
 
   // (re)load when the user becomes available
   useEffect(() => { fetchMyCalls(); }, [user?.id, user?.role]);
@@ -57,12 +64,12 @@ export default function MyCalls() {
       <List
         elements={items}
         listColumns={listColumns}
-        initialSort={{ key: "created_at", dir: "desc" }}
+        initialSort={INITIAL_SORT}
         updateDataByPage={fetchMyCalls}
         pageCount={pageCount}
         showPagination={true}
         hideActions={1}
-        onClickItem={(item) => navigate(`/customers/${item.customer_id}/calls/${item.id}`)}
+        onClickItem={openCall}
       />
     </>
   );

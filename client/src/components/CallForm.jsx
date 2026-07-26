@@ -6,7 +6,6 @@ import { useI18n } from "../i18n/I18nProvider";
 import useApi from "../hooks/useApi.js";
 import {CALL_STATUSES,CALL_PRIORITIES,CALL_TYPES} from "../utils/constants.js";
 import useAuth from "../auth/AuthProvider.jsx";
-import toast from "react-hot-toast";
 
 /**
  * Props:
@@ -46,8 +45,6 @@ export default function CallForm({
 
   const [productsServices, setProductServices] = useState({});
 
-  const [product,setProduct] = useState(initialCall.product);
-
   const [services,setServices] = useState([]);
 
   const [technicians,setTechnicians] = useState([]);
@@ -59,7 +56,7 @@ export default function CallForm({
     async function UpdateNewCall(){
       const updated = { ...form, status: "open" };
       setForm(updated);
-      const ok = await onSubmitForm?.(updated,false);
+      await onSubmitForm?.(updated,false);
     }
     //when status is new call (edited for the first time)
     if (form.id && form.status=="new"){

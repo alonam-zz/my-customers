@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useState, useMemo, useCallback } from "react";
 import { MANAGER_ROLES,SERVICE_ROLES } from "../utils/constants";
 
 const AuthContext = createContext(null);
@@ -25,9 +25,9 @@ const ALL_PAGES = Object.values(PAGE);
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [authDisableEdit, setAuthDisableEdit] = useState(true);
 
-    async function logout() {
+
+  const logout = useCallback(async () => {
     try {
       await fetch("/api/auth/logout", {
         credentials: "include",
@@ -38,10 +38,10 @@ export function AuthProvider({ children }) {
     } finally { 
       setUser(null);
     }
+  }, []);
 
 
-  }
-  async function checkAuth() {
+   const checkAuth = useCallback(async () => {
     try {
       const res = await fetch("/api/auth/me", {
         credentials: "include",
@@ -59,47 +59,64 @@ export function AuthProvider({ children }) {
     } finally {
       setLoading(false);
     }
-  }
+  }, []);
 
-  const isManager = !!user && MANAGER_ROLES.includes(user.role);
-  const isService = !!user && SERVICE_ROLES.includes(user.role);
+  const isManager = useMemo(
+      () =>  !!user && MANAGER_ROLES.includes(user.role),
+      [user]
+    );
 
-  // pages the current user is allowed to open, built from their role
-  let allowedPages = [];
-  if (user) {
-    if (isManager) {
-      allowedPages = ALL_PAGES; // managers/admins see everything
-    } else if (user.role === "technician") {
-      allowedPages = [
-        PAGE.call,
-        PAGE.myCalls,
-        PAGE.changePassword,
-        PAGE.customer,
-        PAGE.dashboard,
-        PAGE.products,
-        PAGE.services,
-      ];
-    } else if (user.role === "support") {
-      // everything except reports and logs
-      allowedPages = ALL_PAGES.filter((p) => p !== PAGE.reports && p !== PAGE.logs && p!==PAGE.dashboard);
-    } else {
-      allowedPages = ALL_PAGES;
-    }
-  }
+   const isService = useMemo(
+      () =>  !!user && SERVICE_ROLES.includes(user.role),
+      [user]
+    );
+
+    const authDisableEdit = !isManager; // derived, no state, no effect
+
+// pages the current user is allowed to open, built from their role
+const allowedPages = useMemo(
+      () =>  {
+        let allowedPages = [];
+        if (user) {
+          if (isManager) {
+            allowedPages = ALL_PAGES; // managers/admins see everything
+          } else if (user.role === "technician") {
+            allowedPages = [
+              PAGE.call,
+              PAGE.myCalls,
+              PAGE.changePassword,
+              PAGE.customer,
+              PAGE.dashboard,
+              PAGE.products,
+              PAGE.services,
+            ];
+          } else if (user.role === "support") {
+            // everything except reports and logs
+            allowedPages = ALL_PAGES.filter((p) => p !== PAGE.reports && p !== PAGE.logs && p!==PAGE.dashboard);
+          } else {
+            allowedPages = ALL_PAGES;
+          }
+        }
+        return allowedPages;
+      },
+      [user]
+    );
+
+  
+ 
 
 
   useEffect(() => {
     checkAuth();
   }, []);
 
-  useEffect(() => {
-    if (user) setAuthDisableEdit(!isManager);
-  }, [user]);
-
-  
+const value = useMemo(
+  () => ({ user, setUser, loading, checkAuth, logout, authDisableEdit, isManager, isService, allowedPages }),
+  [user, loading, checkAuth, logout, authDisableEdit, isManager, isService, allowedPages]
+);
 
   return (
-    <AuthContext.Provider value={{ user, setUser, loading, checkAuth,logout,authDisableEdit,isManager,isService,allowedPages }}>
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );

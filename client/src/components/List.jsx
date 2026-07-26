@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import DataTable from "./DataTable.jsx";
 
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -10,7 +10,6 @@ function List(props) {
   const { t } = useI18n();
 
   const listElements = props.elements;
-  const listHeaders = props.listHeaders;
   const onNew = props.onNew; // when provided, a "New" button is shown above the table
   const newLabel = props.newLabel;
   const initialSort = props.initialSort??{ key: "title", dir: "asc" };
@@ -18,7 +17,12 @@ function List(props) {
   const pageCount = props.pageCount;
   const showPagination = props.showPagination??true;
 
-  const listColumns = props.listColumns.map((c) => {
+  const hideActions = props.hideActions??0; 
+  const allowEdit = props.allowEdit??true;
+  const allowDelete = props.allowDelete??true;
+
+  const listColumns = useMemo(()=>{
+    let listColumns = props.listColumns.map((c) => {
         // console.log(typeof c.customVal);
         return {
           key: c.key,
@@ -35,32 +39,23 @@ function List(props) {
         };
     });
 
-
-  const hideActions = props.hideActions??0; 
-  const allowEdit = props.allowEdit??true;
-  const allowDelete = props.allowDelete??true;
-
-  // Optional: add an actions column on the right
+    // Optional: add an actions column on the right
    if (!hideActions) {
     listColumns.push({
         key: "_actions",
         label: "", width: 2, sortable: false,
         render: (row) => elementActions(row), // your existing actions
     });
-}
+  }
+  return listColumns;
+
+  },[props.listColumns.hideActions,allowEdit,allowDelete]);
+
 
   const onOpenItem = props.onOpenItem;
   const onClickItem = props.onClickItem;
   const onDeleteItem = props.onDeleteItem;
 
-
-  const columnCount = listHeaders?listHeaders.length+1:2;
-  const colWidth = Math.floor(12/columnCount);
-
-
-  const myfunc = () => {
-    alert('Hello World');
-  };
 
   const elementActions = (e) => {
      return (

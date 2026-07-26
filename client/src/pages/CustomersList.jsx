@@ -1,4 +1,4 @@
-import { useState ,useEffect,useMemo } from 'react'
+import { useCallback, useState ,useEffect,useMemo } from 'react'
 import toast from "react-hot-toast";
 import List from '../components/List.jsx'
 import CustomerForm from '../components/CustomerForm.jsx'
@@ -13,6 +13,8 @@ import { useI18n } from "../i18n/I18nProvider";
 import { useAlert } from "../components/ConfirmProvider.jsx";
 
 
+
+const INITIAL_SORT = { key: "name", dir: "asc" };
 
 function CustomersList({categorisList,...rest}) {
   const [open, setOpenCustomerModal] = useState(false);
@@ -46,12 +48,12 @@ function CustomersList({categorisList,...rest}) {
   // }, []);
 
 
-  const listHeaders = [
+  const listHeaders = useMemo(() => [
   t("task.title"),
   t("task.description"),
   t("task.startDate"),
  t("task.status")
-];
+], [t]);
 
   const listColumns = useMemo(() => [
   {key:"name",label:t("customer.name"),width: 2,truncate:true, filter: true},
@@ -74,7 +76,7 @@ function CustomersList({categorisList,...rest}) {
 ], [t,locale]); // This dependency ensures columns are recreated when language changes
 
 
-    const fetchCustomers = async (pageSize,page=1, sortBy, sortDir, filter) => {
+    const fetchCustomers = useCallback(async (pageSize,page=1, sortBy, sortDir, filter) => {
     try {
       setLoading(true);
 
@@ -88,17 +90,20 @@ function CustomersList({categorisList,...rest}) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [send]);
 
 
-  const onOpenCustomerListItem = (item)=>{
-    setOpenCustomerModal(true); /*alert(item);*/ 
+  const onOpenCustomerListItem = useCallback((item)=>{
+    setOpenCustomerModal(true); /*alert(item);*/
     setOpenCustomerItem(item);
-  }
+  }, []);
+
+  const handleNew = useCallback(() => onOpenCustomerListItem({}), [onOpenCustomerListItem]);
+  const openCustomer = useCallback((item) => navigate(`/customers/${item.id}`), [navigate]);
 
   const confirm = useConfirm();
 
-  const onDeleteTaskListItem = async (item)=>{
+  const onDeleteTaskListItem = useCallback(async (item)=>{
     //if (window.confirm('Are you sure you want to delete this item?')) {
     const ok = await confirm({
       title: t("customer.deleteTitle"),
@@ -112,7 +117,7 @@ function CustomersList({categorisList,...rest}) {
       const { ok: deleted } = await send(`/api/customers/${item.id}`, { method: 'DELETE' });
       if (deleted) setCustomers((prev) => prev.filter((c) => c.id !== item.id));
     }
-  }
+  }, [confirm, send, t]);
 
   // returns true on success so the form knows whether to close.
   const handleCustomerSubmit = async (data) => {
@@ -151,13 +156,13 @@ function CustomersList({categorisList,...rest}) {
       </div>
       <div className="justify-content-center align-items-center mb-3 mt-0  row">
         {loading && <div className="text-center">{t("common.loading")}</div>}
-      <List elements={customers} listColumns={listColumns}  
-          listHeaders={listHeaders} name={rest.name} 
-          initialSort={{ key: "name", dir: "asc" }} 
+      <List elements={customers} listColumns={listColumns}
+          listHeaders={listHeaders} name={rest.name}
+          initialSort={INITIAL_SORT}
           updateDataByPage = {fetchCustomers}
           pageCount = {pageCount}
           allowDelete = {false}
-          onNew={() => onOpenCustomerListItem({})} onDeleteItem={(item)=>{onDeleteTaskListItem(item)}} onOpenItem={(item)=>onOpenCustomerListItem(item)} onClickItem={(item) => navigate(`/customers/${item.id}`)}
+          onNew={handleNew} onDeleteItem={onDeleteTaskListItem} onOpenItem={onOpenCustomerListItem} onClickItem={openCustomer}
         />
        <Modal open={open} onClose={() => setOpenCustomerModal(false)} modalchildren>
             <CustomerForm initialCustomer={openCustomerItem} areas={areas}

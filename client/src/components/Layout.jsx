@@ -15,9 +15,9 @@ export default function Layout() {
   const {user} = useAuth();
   return (
     <BreadcrumbProvider>
-      <div className="d-flex">
+      <div className="d-flex ">
         {open && <Sidebar user={user}/>}
-        <main className="flex-grow-1 ms-5 pt-5" style={{ minWidth: 0 }}>
+        <main className="flex-grow-1 ms-3 me-3 pt-5" style={{ minWidth: 0 }}>
           <Header open={open} onToggle={() => setOpen((o) => !o)} />
           <div className="py-3">
           <Outlet />

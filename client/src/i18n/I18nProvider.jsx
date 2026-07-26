@@ -22,12 +22,9 @@ function interpolate(str, values = {}) {
 }
 
 export default function I18nProvider({ children, initialLocale = "en" }) {
+  // I18nProvider is the single source of truth for locale. `initialLocale` is
+  // only the seed value — after mount, setLocale (via useI18n) owns it.
   const [locale, setLocale] = useState(initialLocale);
-
-  // If the parent ever changes initialLocale and you want to follow it:
-  useEffect(() => {
-    setLocale(initialLocale);
-  }, [initialLocale]);
 
   // Set dir/lang for proper RTL/LTR & accessibility
   //both css files have been copied to public directory 

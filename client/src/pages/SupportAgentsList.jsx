@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import List from "../components/List.jsx";
 import Modal from "../components/Modal.jsx";
@@ -9,7 +9,7 @@ import { useI18n } from "../i18n/I18nProvider";
 import { useAlert } from "../components/ConfirmProvider.jsx";
 import useAuth from "../auth/AuthProvider.jsx";
 
-
+const INITIAL_SORT = { key: "name", dir: "asc" };
 
 export default function SupportAgentsList() {
   const { t, locale } = useI18n();
@@ -20,11 +20,11 @@ export default function SupportAgentsList() {
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
   const [editItem, setEditItem] = useState({});
-  const {user,authDisableEdit} = useAuth();
+  const {authDisableEdit} = useAuth();
 
   const alert = useAlert();
 
-  const fetchAgents = async (limit = 20, page = 1, sortBy, sortDir, filter) => {
+  const fetchAgents = useCallback(async (limit = 20, page = 1, sortBy, sortDir, filter) => {
     try {
       setLoading(true);
       const { ok, data } = await send(`/api/supportAgents?limit=${limit}&page=${page}${sortBy ? `&sortBy=${sortBy}&sortDir=${sortDir}` : ""}${filter && Object.keys(filter).length ? `&filter=${encodeURIComponent(JSON.stringify(filter))}` : ""}`);
@@ -37,9 +37,10 @@ export default function SupportAgentsList() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [send]);
 
-  const openModal = (item = {}) => { setEditItem(item); setOpen(true); };
+  const openModal = useCallback((item = {}) => { setEditItem(item); setOpen(true); }, []);
+  const handleNew = useCallback(() => openModal({}), [openModal]);
 
   // create also creates the employee (handled server-side in one call).
   // returns true on success so the form knows whether to close.
@@ -101,12 +102,12 @@ export default function SupportAgentsList() {
       <List
         elements={items}
         listColumns={listColumns}
-        initialSort={{ key: "name", dir: "asc" }}
+        initialSort={INITIAL_SORT}
         updateDataByPage={fetchAgents}
         pageCount={pageCount}
         hideActions={1}
-        onNew={!authDisableEdit?() => openModal({}):""}
-        onClickItem={(item) => openModal(item)}
+        onNew={authDisableEdit ? undefined : handleNew}
+        onClickItem={openModal}
       />
       <Modal open={open} onClose={() => setOpen(false)}>
         <SupportAgentForm

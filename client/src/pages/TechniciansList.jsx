@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import List from "../components/List.jsx";
 import Modal from "../components/Modal.jsx";
@@ -9,6 +9,7 @@ import { useI18n } from "../i18n/I18nProvider";
 import useAuth from "../auth/AuthProvider.jsx";
 import { useAlert } from "../components/ConfirmProvider.jsx";
 
+const INITIAL_SORT = { key: "name", dir: "asc" };
 
 export default function TechniciansList() {
   const { t, locale } = useI18n();
@@ -20,7 +21,7 @@ export default function TechniciansList() {
   const [open, setOpen] = useState(false);
   const [editItem, setEditItem] = useState({});
   const [areas, setAreas] = useState([]);
-  const {user,authDisableEdit} = useAuth();
+  const {authDisableEdit} = useAuth();
 
   const alert = useAlert();
 
@@ -49,7 +50,7 @@ export default function TechniciansList() {
     return map;
   }, [areas]);
 
-  const fetchTechnicians = async (limit = 20, page = 1, sortBy, sortDir, filter) => {
+  const fetchTechnicians = useCallback(async (limit = 20, page = 1, sortBy, sortDir, filter) => {
     try {
       setLoading(true);
       const { ok, data } = await send(`/api/technicians?limit=${limit}&page=${page}${sortBy ? `&sortBy=${sortBy}&sortDir=${sortDir}` : ""}${filter && Object.keys(filter).length ? `&filter=${encodeURIComponent(JSON.stringify(filter))}` : ""}`);
@@ -62,9 +63,10 @@ export default function TechniciansList() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [send]);
 
-  const openModal = (item = {}) => { setEditItem(item); setOpen(true); };
+  const openModal = useCallback((item = {}) => { setEditItem(item); setOpen(true); }, []);
+  const handleNew = useCallback(() => openModal({}), [openModal]);
 
   // create also creates the employee (handled server-side in one call).
   // returns true on success so the form knows whether to close.
@@ -125,12 +127,12 @@ export default function TechniciansList() {
       <List
         elements={items}
         listColumns={listColumns}
-        initialSort={{ key: "name", dir: "asc" }}
+        initialSort={INITIAL_SORT}
         updateDataByPage={fetchTechnicians}
         pageCount={pageCount}
         hideActions={1}
-        onNew={!authDisableEdit?() => openModal({}):""}
-        onClickItem={(item) => openModal(item)}
+        onNew={authDisableEdit ? undefined : handleNew}
+        onClickItem={openModal}
       />
       <Modal open={open} onClose={() => setOpen(false)}>
         <TechnicianForm

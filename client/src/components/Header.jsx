@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Dropdown } from "react-bootstrap";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faBars, faCircleUser } from "@fortawesome/free-solid-svg-icons";
+import { faCircleUser } from "@fortawesome/free-solid-svg-icons";
 
 import { useI18n } from "../i18n/I18nProvider";
 import { useBreadcrumbs } from "./BreadcrumbContext.jsx";
@@ -26,7 +26,7 @@ export default function Header({ onToggle, open }) {
 
   const confirm = useConfirm();
   
-    const onLogout = async (item)=>{
+    const onLogout = async ()=>{
       const ok = await confirm({
         title: t("common.areYouSure"),
         message: t("common.logoutQuestion"),
@@ -46,7 +46,7 @@ export default function Header({ onToggle, open }) {
     const map = {
       customers: t("menu.customers"),
       system: t("menu.system"),
-      employees: t("menu.employees"),
+      users: t("menu.users"),
       logs: t("menu.logs"),
       administration: t("menu.administration"),
       reports: t("menu.reports"),

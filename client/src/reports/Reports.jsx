@@ -206,7 +206,7 @@ useEffect(() => {
       }
     )
   },
-  [statusReport]);
+  [statusReport,t]);
 
   useEffect(()=>
   { 
@@ -271,7 +271,7 @@ useEffect(() => {
       }
     )
   },
-  [typeReport]);
+  [typeReport,t]);
 
      useEffect(()=>
   {
@@ -638,7 +638,7 @@ useEffect(() => {
   const filterRow = (reportId,filter)=>{
     return(
     <div className="row mb-4">
-      <div className="col">
+      <div className="col p-1">
         <label className="form-label">{t("servicecall.fromDate")}</label>
         <DatePicker
           type="date"
@@ -651,7 +651,7 @@ useEffect(() => {
         />
       </div>
       -
-      <div className="col">
+      <div className="col  p-1">
         <label className="form-label">{t("servicecall.toDate")}</label>
         <DatePicker
           type="date"
@@ -664,7 +664,7 @@ useEffect(() => {
         />
       </div>
 
-        <div className="col">
+        <div className="col  p-1">
           <label className="form-label">{t("servicecall.status")}</label>
           <Select
             className="form-select"
@@ -681,7 +681,7 @@ useEffect(() => {
           </select> */}
         </div>
 
-        <div className="col">
+        <div className="col p-1">
           <label className="form-label">{t("servicecall.technician")}</label>
            <SearchSelect
           multiple={true}
@@ -693,7 +693,7 @@ useEffect(() => {
           />
         </div>
 
-        <div className="col">
+        <div className="col p-1">
           <label className="form-label">{t("servicecall.supportAgent")}</label>
           <SearchSelect
           multiple={true}
@@ -705,7 +705,7 @@ useEffect(() => {
           />
         </div>
 
-        <div className="col">
+        <div className="col p-1">
           <label className="form-label">{t("servicecall.priority")}</label>
           <Select
             className="form-select"
@@ -718,7 +718,7 @@ useEffect(() => {
           />
         </div>
 
-        <div className="col">
+        <div className="col p-1">
           <label className="form-label">{t("servicecall.type")}</label>
           <Select
             className="form-select"

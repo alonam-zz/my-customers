@@ -1,7 +1,5 @@
 import pool from "../db.js";
 
-const BASE_SELECT = "SELECT id,name, first_name, last_name, phone, phone2, email, address,is_lead,priority,type,is_active FROM customers";
-
 async function getState(state){
     switch(state){
         case "1": return await getState1();
@@ -82,9 +80,9 @@ async function getState3(){
     `;
     const [lines] = await pool.execute(sql);
     return {
-        avgHoursToClose:lines[0]["avgHoursToClose"],
-        avgHoursToFirstResponse:lines[0]["avgHoursToFirstResponse"],
-        closedThisWeek:lines[0]["closedThisWeek"],
+        avgHoursToClose:lines[0]["avgHoursToClose"]??0,
+        avgHoursToFirstResponse:lines[0]["avgHoursToFirstResponse"]??0,
+        closedThisWeek:lines[0]["closedThisWeek"]??0,
         
     };
 
@@ -134,7 +132,7 @@ async function getState5(sortBy="score",sortDir="DESC"){
     for (let d1 of data1[0]){
         let problem = [];
     
-        if (d1.hours>=36) {
+        if (d1.hours>=36 || d1.hour==null) {
             problem.push("noUpdate36h");
             noUpdate36h++;
         }

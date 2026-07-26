@@ -1,5 +1,5 @@
 // components/DataTable.jsx
-import React, { useMemo, useState,useEffect } from "react";
+import { useMemo, useState,useEffect } from "react";
 import { getCookie, setCookie } from "../utils/cookies.js";
 import { useI18n } from "../i18n/I18nProvider";
 import DatePicker from "react-datepicker";
@@ -30,12 +30,17 @@ export default function DataTable({
     const savedPageSize = getCookie('pageSize');
     const initialPageSize = savedPageSize ? parseInt(savedPageSize) : pageSizeOptions[0];
     
-    // Only set cookie if we're using a default value (no saved cookie)
-    if (!savedPageSize) {
-      setCookie('pageSize', initialPageSize);
-    }
+    // // Only set cookie if we're using a default value (no saved cookie)
+    // if (!savedPageSize) {
+    //   setCookie('pageSize', initialPageSize);
+    // }
     return initialPageSize;
   });
+
+  useEffect(()=>{
+    setCookie('pageSize', pageSize);
+  },[pageSize])
+
 
   const [page, setPage] = useState(1);
 
@@ -251,7 +256,6 @@ export default function DataTable({
             onChange={(e) => {
               let pageSize = Number(e.target.value);
               setPageSize(pageSize);
-              setCookie('pageSize',pageSize)
               setPage(1);
             }}
           >

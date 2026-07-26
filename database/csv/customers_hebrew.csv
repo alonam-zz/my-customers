@@ -1,0 +1,13 @@
+﻿type,name,first_name,last_name,phone,phone2,email,address,is_lead,priority,is_active
+private,\N,יעל,כהן,050-1234567,03-6123456,yael.cohen@example.com,"הרצל 12, פתח תקווה",0,regular,1
+private,\N,דוד,לוי,052-2345678,\N,david.levi@example.com,"ויצמן 8, כפר סבא",1,regular,1
+business,אור פתרונות בע״מ,מיכל,ברק,054-3456789,09-7654321,office@or-solutions.example.com,"החרושת 5, רעננה",0,vip,1
+business,מרכז שירות הצפון,אבי,פרץ,053-4567890,04-8123456,avi@north-service.example.com,"העצמאות 22, חיפה",1,regular,1
+institue,בית ספר נווה הדר,רונית,שמעוני,055-5678901,03-7345678,ronit@neve-hadar.example.com,"הגפן 17, גבעתיים",0,vip,1
+private,\N,משה,ביטון,058-6789012,\N,moshe.biton@example.com,"הנביאים 3, ירושלים",0,regular,1
+business,דיגיטל פלוס,נועה,מזרחי,050-7890123,03-9876543,noa@digital-plus.example.com,"יגאל אלון 94, תל אביב",1,vip,1
+institue,עמותת יד לקהילה,שרה,אדרי,052-8901234,02-6234567,sara@yad-community.example.com,"יפו 31, ירושלים",0,regular,1
+private,\N,אלון,ישראלי,054-9012345,\N,alon.israeli@example.com,"הראשונים 6, ראשון לציון",0,vip,1
+business,ירוק בעיר,תמר,גולן,053-0123456,08-9345678,tamar@green-city.example.com,"הרימון 10, רחובות",1,regular,1
+private,\N,חנה,רוזן,055-1122334,09-7112233,hana.rozen@example.com,"הדקל 4, נתניה",0,regular,0
+institue,מתנ״ס השכונה,יוסי,שלום,058-2233445,03-7456789,yossi@community-center.example.com,"הזית 14, בני ברק",0,vip,1
